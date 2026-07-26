@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Execution {{ execution.id }} | Automation Platform
+    </title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+            color: #2d2d2d;
+        }
+
+        h1 {
+            margin-bottom: 24px;
+        }
+
+        /*
+         * Reusable buttons
+         */
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition:
+                opacity 0.2s ease,
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #0d6efd;
+        }
+
+        .btn-success {
+            background: #198754;
+        }
+
+        /*
+         * Navigation
+         */
+        .navigation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        /*
+         * Main execution card
+         */
+        .card {
+            padding: 25px;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            padding-bottom: 18px;
+            margin-bottom: 22px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .execution-title {
+            margin: 0;
+            font-size: 24px;
+            color: #212529;
+        }
+
+        .execution-subtitle {
+            margin: 7px 0 0;
+            color: #666;
+        }
+
+        /*
+         * Status badges
+         */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 11px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .status-completed {
+            color: #146c43;
+            background: #d1e7dd;
+        }
+
+        .status-running {
+            color: #7a5800;
+            background: #fff3cd;
+        }
+
+        .status-failed {
+            color: #842029;
+            background: #f8d7da;
+        }
+
+        .status-pending {
+            color: #495057;
+            background: #e9ecef;
+        }
+
+        /*
+         * Execution details
+         */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(240px, 1fr));
+            gap: 18px 30px;
+            margin-bottom: 28px;
+        }
+
+        .field {
+            min-width: 0;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 13px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .field-value {
+            color: #222;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        /*
+         * Output sections
+         */
+        .section {
+            margin-top: 25px;
+        }
+
+        .section-title {
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .console {
+            min-height: 110px;
+            max-height: 420px;
+            overflow: auto;
+            padding: 18px;
+            background: #1e1e1e;
+            color: #f5f5f5;
+            border: 1px solid #111;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .error-console {
+            min-height: 70px;
+            max-height: 300px;
+            overflow: auto;
+            padding: 18px;
+            background: #fff0f0;
+            color: #b02a37;
+            border: 1px solid #f1aeb5;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .no-error {
+            padding: 14px 16px;
+            color: #146c43;
+            background: #d1e7dd;
+            border: 1px solid #badbcc;
+            border-radius: 8px;
+        }
+
+        /*
+         * Download section
+         */
+        .download-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 22px;
+            margin-top: 28px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        /*
+         * Responsive layout
+         */
+        @media screen and (max-width: 750px) {
+            body {
+                padding: 24px;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+            }
+        }
+
+        @media screen and (max-width: 550px) {
+            body {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 27px;
+            }
+
+            .navigation,
+            .download-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .navigation .btn,
+            .download-section .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page-container">
+
+        <h1>Execution Details</h1>
+
+        <div class="navigation">
+
+            <a
+                href="/dashboard"
+                class="btn btn-primary"
+            >
+                ← Dashboard
+            </a>
+
+            <a
+                href="/history"
+                class="btn btn-primary"
+            >
+                📜 Execution History
+            </a>
+
+            {% if job %}
+
+            <a
+                href="/jobs/{{ job.id }}/details"
+                class="btn btn-primary"
+            >
+                ⚙ Job Details
+            </a>
+
+            {% endif %}
+
+        </div>
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2 class="execution-title">
+                        Execution #{{ execution.id }}
+                    </h2>
+
+                    <p class="execution-subtitle">
+                        {{ execution.job_name }}
+                    </p>
+                </div>
+
+                <span
+                    class="
+                        status-badge
+                        {% if execution.status == 'Completed' %}
+                            status-completed
+                        {% elif execution.status == 'Running' %}
+                            status-running
+                        {% elif execution.status == 'Failed' %}
+                            status-failed
+                        {% else %}
+                            status-pending
+                        {% endif %}
+                    "
+                >
+                    {{ execution.status }}
+                </span>
+
+            </div>
+
+            <div class="details-grid">
+
+                <div class="field">
+                    <span class="field-label">Execution ID</span>
+
+                    <div class="field-value">
+                        {{ execution.id }}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Job Name</span>
+
+                    <div class="field-value">
+                        {{ execution.job_name }}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Started</span>
+
+                    <div class="field-value">
+                        {{ execution.started_at or "-" }}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Completed</span>
+
+                    <div class="field-value">
+                        {{ execution.completed_at or "-" }}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Duration</span>
+
+                    <div class="field-value">
+                        {% if execution.duration is not none %}
+                            {{ "%.4f"|format(execution.duration) }} seconds
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="field">
+                    <span class="field-label">Error Recorded</span>
+
+                    <div class="field-value">
+                        {% if execution.error_message %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="section">
+
+                <div class="section-title">
+                    Console Output
+                </div>
+
+                <div class="console">{% if execution.result %}{{ execution.result }}{% else %}No output was returned by this execution.{% endif %}</div>
+
+            </div>
+
+            <div class="section">
+
+                <div class="section-title">
+                    Error Details
+                </div>
+
+                {% if execution.error_message %}
+
+                <div class="error-console">{{ execution.error_message }}</div>
+
+                {% else %}
+
+                <div class="no-error">
+                    No error was recorded for this execution.
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            <div class="download-section">
+
+                <a
+                    href="/executions/{{ execution.id }}/download"
+                    class="btn btn-success"
+                >
+                    Download Execution Log
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

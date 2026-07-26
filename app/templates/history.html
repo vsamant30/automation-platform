@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Execution History | Automation Platform</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        .page-container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: #2d2d2d;
+        }
+
+        /*
+         * Reusable buttons
+         */
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition:
+                opacity 0.2s ease,
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #0d6efd;
+        }
+
+        .btn-success {
+            background: #198754;
+        }
+
+        .btn-small {
+            padding: 7px 11px;
+            font-size: 12px;
+        }
+
+        /*
+         * Navigation
+         */
+        .navigation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        /*
+         * History card and table
+         */
+        .history-card {
+            overflow: hidden;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th,
+        td {
+            padding: 13px 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #087cc1;
+            color: white;
+            font-size: 14px;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tbody tr:hover {
+            background: #edf5ff;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /*
+         * Execution ID and actions
+         */
+        .execution-id-cell {
+            min-width: 110px;
+        }
+
+        .execution-link {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: #0d6efd;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .execution-link:hover {
+            text-decoration: underline;
+        }
+
+        /*
+         * Status badges
+         */
+        .status-badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .status-completed {
+            color: #146c43;
+            background: #d1e7dd;
+        }
+
+        .status-running {
+            color: #7a5800;
+            background: #fff3cd;
+        }
+
+        .status-failed {
+            color: #842029;
+            background: #f8d7da;
+        }
+
+        .status-pending {
+            color: #495057;
+            background: #e9ecef;
+        }
+
+        /*
+         * Cell formatting
+         */
+        .date-cell {
+            min-width: 175px;
+            white-space: normal;
+        }
+
+        .duration-cell {
+            min-width: 100px;
+            white-space: nowrap;
+        }
+
+        .result-cell,
+        .error-cell {
+            max-width: 320px;
+            min-width: 220px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.45;
+        }
+
+        .empty-state {
+            padding: 40px 25px;
+            text-align: center;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            margin-bottom: 10px;
+            font-size: 34px;
+        }
+
+        .empty-state p {
+            margin: 0;
+        }
+
+        /*
+         * Responsive layout
+         */
+        @media screen and (max-width: 800px) {
+            body {
+                padding: 24px;
+            }
+        }
+
+        @media screen and (max-width: 550px) {
+            body {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 27px;
+            }
+
+            .navigation {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .navigation .btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="page-container">
+
+        <h1>Execution History</h1>
+
+        <div class="navigation">
+
+            <a
+                href="/dashboard"
+                class="btn btn-primary"
+            >
+                ← Dashboard
+            </a>
+
+        </div>
+
+        <div class="history-card">
+
+            {% if executions %}
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Job</th>
+                                <th>Status</th>
+                                <th>Started</th>
+                                <th>Completed</th>
+                                <th>Duration</th>
+                                <th>Result</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for execution in executions %}
+
+                            <tr>
+
+                                <td class="execution-id-cell">
+
+                                    <a
+                                        href="/executions/{{ execution.id }}/details"
+                                        class="execution-link"
+                                    >
+                                        {{ execution.id }}
+                                    </a>
+
+                                    <br>
+
+                                    <a
+                                        href="/executions/{{ execution.id }}/download"
+                                        class="btn btn-success btn-small"
+                                    >
+                                        Download Log
+                                    </a>
+
+                                </td>
+
+                                <td>
+                                    {{ execution.job_name }}
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="
+                                            status-badge
+                                            {% if execution.status == 'Completed' %}
+                                                status-completed
+                                            {% elif execution.status == 'Running' %}
+                                                status-running
+                                            {% elif execution.status == 'Failed' %}
+                                                status-failed
+                                            {% else %}
+                                                status-pending
+                                            {% endif %}
+                                        "
+                                    >
+                                        {{ execution.status }}
+                                    </span>
+                                </td>
+
+                                <td class="date-cell">
+                                    {{ execution.started_at or "-" }}
+                                </td>
+
+                                <td class="date-cell">
+                                    {{ execution.completed_at or "-" }}
+                                </td>
+
+                                <td class="duration-cell">
+                                    {% if execution.duration is not none %}
+                                        {{ "%.4f"|format(execution.duration) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+
+                                <td class="result-cell">
+                                    {{ execution.result or "-" }}
+                                </td>
+
+                                <td class="error-cell">
+                                    {{ execution.error_message or "-" }}
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-state-icon">
+                        📭
+                    </div>
+
+                    <p>
+                        No execution history is available.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

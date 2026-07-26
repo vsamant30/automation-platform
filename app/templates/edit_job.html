@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Edit Job</title>
+
+    <style>
+
+        body{
+            font-family:Arial;
+            margin:40px;
+            background:#f4f4f4;
+        }
+
+        h1{
+            color:#333;
+        }
+
+        .card{
+            background:white;
+            padding:25px;
+            border-radius:8px;
+            width:700px;
+        }
+
+        label{
+            font-weight:bold;
+            display:block;
+            margin-top:15px;
+            margin-bottom:5px;
+        }
+
+        input,
+        textarea,
+        select{
+
+            width:100%;
+            padding:10px;
+            font-size:16px;
+
+        }
+
+        textarea{
+
+            height:120px;
+
+        }
+
+        button{
+
+            margin-top:20px;
+
+            background:#0d6efd;
+
+            color:white;
+
+            border:none;
+
+            padding:12px 20px;
+
+            border-radius:5px;
+
+            cursor:pointer;
+
+            font-size:16px;
+
+        }
+
+        a{
+
+            text-decoration:none;
+
+            margin-right:15px;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>Edit Job</h1>
+
+<p>
+
+<a href="/dashboard">← Dashboard</a>
+
+<a href="/jobs/{{ job.id }}/details">
+Job Details
+</a>
+
+</p>
+
+<div class="card">
+
+<form
+action="/jobs/{{ job.id }}/edit"
+method="post"
+>
+
+<label>
+
+Job Name
+
+</label>
+
+<input
+type="text"
+name="job_name"
+value="{{ job.name }}"
+required
+>
+
+<label>
+
+Description
+
+</label>
+
+<textarea
+name="description"
+>{{ job.description }}</textarea>
+
+<label>
+
+Script Type
+
+</label>
+
+<select
+name="script_type"
+>
+
+<option
+value="python"
+{% if job.script_type=="python" %}
+selected
+{% endif %}
+>
+
+Python
+
+</option>
+
+<option
+value="powershell"
+{% if job.script_type=="powershell" %}
+selected
+{% endif %}
+>
+
+PowerShell
+
+</option>
+
+<option
+value="batch"
+{% if job.script_type=="batch" %}
+selected
+{% endif %}
+>
+
+Batch
+
+</option>
+
+</select>
+
+<label>
+
+Script Path
+
+</label>
+
+<input
+type="text"
+name="script_path"
+value="{{ job.script_path }}"
+required
+>
+
+<button
+type="submit"
+>
+
+💾 Save Changes
+
+</button>
+
+</form>
+
+</div>
+
+</body>
+
+</html>
