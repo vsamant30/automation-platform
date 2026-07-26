@@ -52,3 +52,41 @@ Automation-Platform/
 ├── requirements.txt
 ├── .gitignore
 └── README.md
+
+---
+
+# Screenshots
+
+## Dashboard
+
+![Dashboard](images/dashboard.png)
+
+---
+
+## Upload Script
+
+![Upload Script](images/upload-script.png)
+
+---
+
+## Job Details
+
+![Job Details](images/job-details.png)
+
+---
+
+## Schedule Job
+
+![Schedule Job](images/schedule-job.png)
+
+---
+
+## Execution History
+
+![Execution History](images/execution-history.png)
+
+---
+
+## Execution Details
+
+![Execution Details](images/execution-details.png)
