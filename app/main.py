@@ -47,6 +47,9 @@ from app.services.execution_logger import get_execution_log_path
 
 from app.services.job_execution_service import execute_job_with_history
 
+from app.services.audit_service import log_audit_event
+
+
 from fastapi import FastAPI, Request, Form, HTTPException
 
 from uuid import uuid4
@@ -382,6 +385,18 @@ def create_job_from_dashboard(
         )
 
         db.add(new_job)
+        db.flush()
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="CREATE_JOB",
+            entity_type="Job",
+            entity_id=new_job.id,
+            new_value=f"Created job '{new_job.name}' from dashboard",
+        )
+
         db.commit()
         db.refresh(new_job)
 

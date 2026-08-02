@@ -19,6 +19,7 @@ from app.db.database import get_db
 from app.db.models import Job, User
 from app.schemas.job import JobCreate, JobResponse
 from app.services.job_runner import execute_job
+from app.services.audit_service import log_audit_event
 
 router = APIRouter()
 
@@ -52,6 +53,18 @@ def create_job(
     )
 
     db.add(new_job)
+    db.flush()
+
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="CREATE_JOB",
+        entity_type="Job",
+        entity_id=new_job.id,
+        new_value=f"Created job '{new_job.name}'",
+    )
+
     db.commit()
     db.refresh(new_job)
 
@@ -73,7 +86,7 @@ def run_job(
         )
 
     require_admin(current_user)
-    
+
     if not job.is_enabled:
         raise HTTPException(
         status_code=400,
@@ -120,9 +133,9 @@ def run_job(
             status_code=500,
             detail=f"Job execution failed: {str(error)}",
         )
-        
-        
-        
+
+
+
 @router.put("/{job_id}/toggle")
 def toggle_job(
     request: Request,
@@ -168,9 +181,9 @@ def toggle_job(
             else "Job disabled"
         ),
     }
-    
-    
-    
+
+
+
 @router.get("/check-name")
 def check_job_name(
     name: str = Query(...),
@@ -234,7 +247,7 @@ def check_job_name(
         "name": cleaned_name,
         "message": f'"{cleaned_name}" is available.',
     }
-    
-    
-    
-     
+
+
+
+

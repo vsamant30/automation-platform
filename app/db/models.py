@@ -231,3 +231,61 @@ class User(Base):
         default=datetime.utcnow,
         nullable=False,
     )
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    user_id = Column(
+        Integer,
+        nullable=True,
+    )
+
+    username = Column(
+        String,
+        nullable=True,
+    )
+
+    action = Column(
+        String,
+        nullable=False,
+        index=True,
+    )
+
+    entity_type = Column(
+        String,
+        nullable=False,
+        index=True,
+    )
+
+    entity_id = Column(
+        Integer,
+        nullable=True,
+    )
+
+    old_value = Column(
+        Text,
+        nullable=True,
+    )
+
+    new_value = Column(
+        Text,
+        nullable=True,
+    )
+
+    ip_address = Column(
+        String,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True,
+    )
