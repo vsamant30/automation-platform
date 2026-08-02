@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -691,6 +692,29 @@ def delete_job(
         )
 
         if job:
+            deleted_job_value = json.dumps(
+                {
+                    "name": job.name,
+                    "description": job.description,
+                    "category": job.category,
+                    "script_type": job.script_type,
+                    "script_path": job.script_path,
+                    "status": job.status,
+                },
+                default=str,
+            )
+
+            log_audit_event(
+                db=db,
+                user_id=current_user.id,
+                username=current_user.username,
+                action="DELETE_JOB",
+                entity_type="Job",
+                entity_id=job.id,
+                old_value=deleted_job_value,
+                new_value=None,
+            )
+
             db.delete(job)
             db.commit()
 
