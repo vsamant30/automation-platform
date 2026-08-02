@@ -455,20 +455,25 @@
                     </div>
                 </div>
 
-                <div class="field">
-                    <span class="field-label">Scheduling</span>
-                    <div class="field-value">
-                        {% if job.schedule_enabled %}
-                            <span class="schedule-enabled">
-                                Enabled
-                            </span>
-                        {% else %}
-                            <span class="schedule-disabled">
-                                Disabled
-                            </span>
-                        {% endif %}
-                    </div>
-                </div>
+<div class="field">
+    <span class="field-label">Scheduling</span>
+    <div class="field-value">
+        {% if job.schedule_enabled and job.schedule_paused %}
+            <span class="schedule-disabled">
+                Paused
+            </span>
+        {% elif job.schedule_enabled %}
+            <span class="schedule-enabled">
+                Enabled
+            </span>
+        {% else %}
+            <span class="schedule-disabled">
+                Disabled
+            </span>
+        {% endif %}
+    </div>
+</div>
+
 
                 <div class="field">
                     <span class="field-label">Schedule Type</span>

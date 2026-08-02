@@ -76,6 +76,24 @@
 
     </style>
 
+
+    <style>
+
+.toast{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:#dc3545;
+    color:white;
+    padding:14px 18px;
+    border-radius:6px;
+    font-weight:bold;
+    z-index:9999;
+    box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+
+</style>
+
 </head>
 
 <body>
@@ -97,6 +115,7 @@ Job Details
 <form
 action="/jobs/{{ job.id }}/edit"
 method="post"
+id="editJobForm"
 >
 
 <label>
@@ -107,10 +126,16 @@ Job Name
 
 <input
 type="text"
+id="job_name"
 name="job_name"
 value="{{ job.name }}"
 required
 >
+
+<small
+id="job-name-message"
+style="font-weight:bold;"
+></small>
 
 <label>
 
@@ -119,6 +144,7 @@ Description
 </label>
 
 <textarea
+id="description"
 name="description"
 >{{ job.description }}</textarea>
 
@@ -129,6 +155,7 @@ Script Type
 </label>
 
 <select
+id="script_type"
 name="script_type"
 >
 
@@ -169,12 +196,71 @@ Batch
 
 <label>
 
+Category
+
+</label>
+
+<select
+id="category"
+name="category"
+>
+
+<option
+value="General"
+{% if job.category == "General" %}
+selected
+{% endif %}
+>
+General
+</option>
+
+<option
+value="Azure"
+{% if job.category == "Azure" %}
+selected
+{% endif %}
+>
+Azure
+</option>
+
+<option
+value="AWS"
+{% if job.category == "AWS" %}
+selected
+{% endif %}
+>
+AWS
+</option>
+
+<option
+value="SAP"
+{% if job.category == "SAP" %}
+selected
+{% endif %}
+>
+SAP
+</option>
+
+<option
+value="ServiceNow"
+{% if job.category == "ServiceNow" %}
+selected
+{% endif %}
+>
+ServiceNow
+</option>
+
+</select>
+
+<label>
+
 Script Path
 
 </label>
 
 <input
 type="text"
+id="script_path"
 name="script_path"
 value="{{ job.script_path }}"
 required
@@ -182,6 +268,7 @@ required
 
 <button
 type="submit"
+id="saveJobButton"
 >
 
 💾 Save Changes
@@ -191,6 +278,178 @@ type="submit"
 </form>
 
 </div>
+
+<script>
+
+function showToast(message){
+
+    const toast=document.createElement("div");
+
+    toast.className="toast";
+
+    toast.innerText=message;
+
+    document.body.appendChild(toast);
+
+    setTimeout(function(){
+
+        toast.remove();
+
+    },3500);
+
+}
+
+const urlParams=new URLSearchParams(window.location.search);
+
+if(urlParams.get("duplicate")==="true"){
+
+    showToast(
+        "Job name already exists. Please choose a different name."
+    );
+
+}
+
+const jobNameInput=document.getElementById("job_name");
+
+const jobNameMessage=document.getElementById("job-name-message");
+
+const saveJobButton=document.getElementById("saveJobButton");
+
+const editJobForm=document.getElementById("editJobForm");
+
+
+
+let timer;
+
+let originalName = jobNameInput.value.trim();
+
+const descriptionInput = document.getElementById("description");
+
+const scriptTypeInput = document.getElementById("script_type");
+
+const categoryInput = document.getElementById("category");
+
+const scriptPathInput = document.getElementById("script_path");
+
+const originalValues = {
+    name: jobNameInput.value.trim(),
+    description: descriptionInput.value.trim(),
+    scriptType: scriptTypeInput.value,
+    category: categoryInput.value,
+    scriptPath: scriptPathInput.value.trim()
+};
+
+function hasChanges(){
+
+    return (
+
+        jobNameInput.value.trim() !== originalValues.name ||
+
+        descriptionInput.value.trim() !== originalValues.description ||
+
+        scriptTypeInput.value !== originalValues.scriptType ||
+
+        categoryInput.value !== originalValues.category ||
+
+        scriptPathInput.value.trim() !== originalValues.scriptPath
+
+    );
+
+}
+
+jobNameInput.addEventListener("input",function(){
+
+    clearTimeout(timer);
+
+const name = jobNameInput.value.trim();
+
+if (name === originalName) {
+
+    jobNameMessage.innerHTML = "";
+    jobNameMessage.style.color = "";
+
+    updateSaveButton();
+
+    return;
+
+}
+
+if (name === "") {
+
+    jobNameMessage.innerHTML = "";
+    jobNameMessage.style.color = "";
+
+    updateSaveButton();
+
+    return;
+
+}
+
+    timer=setTimeout(async function(){
+
+        const response=await fetch(
+
+            "/jobs/check-name?name="+
+            encodeURIComponent(name)+
+            "&exclude_job_id={{ job.id }}"
+
+        );
+
+        const data=await response.json();
+
+if (!data.valid) {
+
+    jobNameMessage.style.color = "red";
+
+    jobNameMessage.innerHTML = data.message;
+
+    saveJobButton.disabled = true;
+
+}
+else {
+
+    jobNameMessage.style.color = "green";
+
+    jobNameMessage.innerHTML = data.message;
+
+    updateSaveButton();
+
+}
+
+    },400);
+
+});
+
+function updateSaveButton(){
+
+    saveJobButton.disabled = !hasChanges();
+
+}
+
+descriptionInput.addEventListener("input", updateSaveButton);
+
+scriptPathInput.addEventListener("input", updateSaveButton);
+
+scriptTypeInput.addEventListener("change", updateSaveButton);
+
+categoryInput.addEventListener("change", updateSaveButton);
+
+// Initial state
+updateSaveButton();
+
+
+
+editJobForm.addEventListener("submit",function(event){
+
+    if(saveJobButton.disabled){
+
+        event.preventDefault();
+
+    }
+
+});
+
+</script>
 
 </body>
 

@@ -1,28 +1,54 @@
+from app.services.job_name_validator import (
+    JOB_NAME_PATTERN,
+    validate_job_name,
+)
+
 from datetime import datetime
 
-from fastapi import HTTPException
-from app.services.job_runner import execute_job
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
 
+from app.core.auth import (
+    get_current_user,
+    get_current_user_from_cookie,
+)
+
+
+from app.core.permissions import require_admin
 from app.db.database import get_db
-from app.db.models import Job
+from app.db.models import Job, User
 from app.schemas.job import JobCreate, JobResponse
+from app.services.job_runner import execute_job
 
 router = APIRouter()
 
 
 @router.get("/", response_model=list[JobResponse])
-def get_jobs(db: Session = Depends(get_db)):
+def get_jobs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     return db.query(Job).all()
 
 
 @router.post("/", response_model=JobResponse, status_code=201)
-def create_job(job_data: JobCreate, db: Session = Depends(get_db)):
+def create_job(
+    job_data: JobCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+
+    require_admin(current_user)
+
+    job_name = validate_job_name(
+        db=db,
+        job_name=job_data.name,
+    )
+
     new_job = Job(
-        name=job_data.name,
+        name=job_name,
         status="Pending",
+        is_enabled=job_data.is_enabled,
     )
 
     db.add(new_job)
@@ -31,12 +57,28 @@ def create_job(job_data: JobCreate, db: Session = Depends(get_db)):
 
     return new_job
 
+
 @router.post("/{job_id}/run")
-def run_job(job_id: int, db: Session = Depends(get_db)):
+def run_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     job = db.query(Job).filter(Job.id == job_id).first()
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found",
+        )
+
+    require_admin(current_user)
+    
+    if not job.is_enabled:
+        raise HTTPException(
+        status_code=400,
+        detail="Job is disabled.",
+    )
 
     try:
         job.status = "Running"
@@ -48,7 +90,6 @@ def run_job(job_id: int, db: Session = Depends(get_db)):
         job.status = "Completed"
         job.result = result
         job.error_message = None
-
         job.completed_at = datetime.utcnow()
         job.duration = (
             job.completed_at - job.started_at
@@ -63,11 +104,9 @@ def run_job(job_id: int, db: Session = Depends(get_db)):
         }
 
     except Exception as error:
-
         job.status = "Failed"
         job.result = None
         job.error_message = str(error)
-
         job.completed_at = datetime.utcnow()
 
         if job.started_at:
@@ -81,3 +120,121 @@ def run_job(job_id: int, db: Session = Depends(get_db)):
             status_code=500,
             detail=f"Job execution failed: {str(error)}",
         )
+        
+        
+        
+@router.put("/{job_id}/toggle")
+def toggle_job(
+    request: Request,
+    job_id: int,
+    db: Session = Depends(get_db),
+):
+    current_user = get_current_user_from_cookie(
+        request,
+        db,
+    )
+
+    if not current_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated.",
+        )
+
+    require_admin(current_user)
+
+    job = (
+        db.query(Job)
+        .filter(Job.id == job_id)
+        .first()
+    )
+
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found",
+        )
+
+    job.is_enabled = not job.is_enabled
+
+    db.commit()
+    db.refresh(job)
+
+    return {
+        "job_id": job.id,
+        "is_enabled": job.is_enabled,
+        "message": (
+            "Job enabled"
+            if job.is_enabled
+            else "Job disabled"
+        ),
+    }
+    
+    
+    
+@router.get("/check-name")
+def check_job_name(
+    name: str = Query(...),
+    exclude_job_id: int | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    cleaned_name = name.strip()
+
+    if not cleaned_name:
+        return {
+            "valid": False,
+            "exists": False,
+            "name": cleaned_name,
+            "message": "Job name is required.",
+        }
+
+    if len(cleaned_name) > 100:
+        return {
+            "valid": False,
+            "exists": False,
+            "name": cleaned_name,
+            "message": "Job name must not exceed 100 characters.",
+        }
+
+    if not JOB_NAME_PATTERN.fullmatch(cleaned_name):
+        return {
+            "valid": False,
+            "exists": False,
+            "name": cleaned_name,
+            "message": (
+                "Job name may contain only letters, numbers, "
+                "spaces, underscores (_), and hyphens (-)."
+            ),
+        }
+
+    query = db.query(Job).filter(
+        Job.name.ilike(cleaned_name)
+    )
+
+    if exclude_job_id is not None:
+        query = query.filter(
+            Job.id != exclude_job_id
+        )
+
+    existing_job = query.first()
+
+    if existing_job:
+        return {
+            "valid": False,
+            "exists": True,
+            "name": existing_job.name,
+            "message": (
+                f'Job name "{existing_job.name}" already exists. '
+                "Please choose a different name."
+            ),
+        }
+
+    return {
+        "valid": True,
+        "exists": False,
+        "name": cleaned_name,
+        "message": f'"{cleaned_name}" is available.',
+    }
+    
+    
+    
+     

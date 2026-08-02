@@ -201,8 +201,8 @@ def execute_job(job_reference: Union[Job, str]) -> str:
     if (
         script_type == "python"
         and ":" in script_path
-        and not os.path.isfile(script_path)
-    ):
+        and not script_path.lower().endswith(".py")
+    ):  
         return _run_python_module(script_path)
 
     absolute_script_path = os.path.abspath(script_path)

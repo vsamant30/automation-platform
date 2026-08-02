@@ -64,6 +64,19 @@
             transform: translateY(0);
         }
 
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn:disabled:hover {
+    opacity: 0.45;
+    transform: none;
+    box-shadow: none;
+}
+
         .btn-primary {
             background: #0d6efd;
         }
@@ -80,27 +93,91 @@
         /*
          * Navigation
          */
-        .navigation {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
+.navigation {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+
+}
+
+.history-search-input {
+
+    width: 320px;
+    padding: 10px 14px;
+
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+
+    font-size: 14px;
+
+    outline: none;
+
+    transition: border-color .2s ease,
+                box-shadow .2s ease;
+
+}
+
+.history-filters {
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+}
+
+.history-status-filter {
+
+    width: 150px;
+    padding: 10px 12px;
+
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+
+    background: white;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    outline: none;
+
+}
+
+.history-status-filter:focus {
+
+    border-color: #0d6efd;
+
+    box-shadow: 0 0 0 3px rgba(13,110,253,.15);
+
+}
+
+.history-search-input:focus {
+
+    border-color: #0d6efd;
+
+    box-shadow: 0 0 0 3px rgba(13,110,253,.15);
+
+}
 
         /*
          * History card and table
          */
-        .history-card {
-            overflow: hidden;
-            background: white;
-            border: 1px solid #e1e5e9;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
+.history-card {
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
 
-        .table-container {
-            overflow-x: auto;
-        }
+
+.table-container {
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
 
         table {
             width: 100%;
@@ -117,11 +194,16 @@
             vertical-align: top;
         }
 
-        th {
-            background: #087cc1;
-            color: white;
-            font-size: 14px;
-        }
+th {
+    background: #087cc1;
+    color: white;
+    font-size: 14px;
+
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
 
         tbody tr:nth-child(even) {
             background: #f8f9fa;
@@ -130,6 +212,14 @@
         tbody tr:hover {
             background: #edf5ff;
         }
+
+        tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+tbody tr:hover {
+    background: #e6f2ff;
+}
 
         tbody tr:last-child td {
             border-bottom: none;
@@ -223,6 +313,28 @@
             margin: 0;
         }
 
+        .history-pagination {
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+
+    padding: 18px;
+
+    border-top: 1px solid #e5e5e5;
+
+    background: #fafafa;
+
+}
+
+.history-pagination span {
+
+    font-weight: bold;
+    color: #444;
+
+}
+
         /*
          * Responsive layout
          */
@@ -261,37 +373,67 @@
 
         <h1>Execution History</h1>
 
-        <div class="navigation">
+<div class="navigation">
 
-            <a
-                href="/dashboard"
-                class="btn btn-primary"
-            >
-                ← Dashboard
-            </a>
+    <a
+        href="/dashboard"
+        class="btn btn-primary"
+    >
+        ← Dashboard
+    </a>
 
-        </div>
+    <div class="history-filters">
 
-        <div class="history-card">
+        <select
+            id="historyStatusFilter"
+            class="history-status-filter"
+        >
+            <option value="">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="running">Running</option>
+            <option value="failed">Failed</option>
+            <option value="pending">Pending</option>
+        </select>
+
+        <input
+            type="text"
+            id="historySearch"
+            class="history-search-input"
+            placeholder="Search by job name..."
+        >
+
+        <button
+            type="button"
+            id="historyClearFilters"
+            class="btn btn-primary"
+        >
+    Clear Filters
+</button>
+
+    </div>
+
+</div>
+
+<div class="history-card">
 
             {% if executions %}
 
-                <div class="table-container">
+<div class="table-container">
 
                     <table>
 
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Job</th>
-                                <th>Status</th>
-                                <th>Started</th>
-                                <th>Completed</th>
-                                <th>Duration</th>
-                                <th>Result</th>
-                                <th>Error</th>
-                            </tr>
-                        </thead>
+<thead>
+    <tr>
+        <th data-column="0" data-label="ID">ID</th>
+        <th data-column="1" data-label="Job">Job</th>
+        <th data-column="2" data-label="Status">Status</th>
+        <th data-column="3" data-label="Started">Started</th>
+        <th data-column="4" data-label="Completed">Completed</th>
+        <th data-column="5" data-label="Duration">Duration</th>
+        <th data-column="6" data-label="Result">Result</th>
+        <th data-column="7" data-label="Error">Error</th>
+    </tr>
+</thead>
 
                         <tbody>
 
@@ -316,6 +458,23 @@
                                     >
                                         Download Log
                                     </a>
+
+                                    {% if execution.status == "Failed" and current_user.role == "admin" %}
+
+    <form
+        method="post"
+        action="/executions/{{ execution.id }}/retry"
+        style="display: inline-block; margin-top: 8px;"
+    >
+        <button
+            type="submit"
+            class="btn btn-primary btn-small"
+        >
+            Retry
+        </button>
+    </form>
+
+{% endif %}
 
                                 </td>
 
@@ -370,6 +529,12 @@
 
                             {% endfor %}
 
+<tr id="historyNoResultsRow" style="display: none;">
+    <td colspan="8" class="empty-state">
+        No matching execution records found.
+    </td>
+</tr>
+
                         </tbody>
 
                     </table>
@@ -392,9 +557,516 @@
 
             {% endif %}
 
+<div class="history-pagination">
+
+    <label for="historyRowsPerPage">
+        Rows per page:
+    </label>
+
+    <select id="historyRowsPerPage">
+        <option value="10" selected>10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+    </select>
+
+    <span id="historyRecordInfo">
+        Showing 0–0 of 0 records
+    </span>
+
+<button
+    type="button"
+    id="historyFirstPage"
+    class="btn btn-primary btn-small"
+>
+    ⏮ First
+</button>
+
+<button
+    type="button"
+    id="historyPreviousPage"
+    class="btn btn-primary btn-small"
+>
+    ◀ Previous
+</button>
+
+<span id="historyPageInfo">
+    Page 1 of 1
+</span>
+
+<button
+    type="button"
+    id="historyNextPage"
+    class="btn btn-primary btn-small"
+>
+    Next ▶
+</button>
+
+<button
+    type="button"
+    id="historyLastPage"
+    class="btn btn-primary btn-small"
+>
+    Last ⏭
+</button>
+</div>
+
         </div>
 
+        
+
     </div>
+
+
+
+
+<script>
+
+const historySearch =
+    document.getElementById("historySearch");
+
+const historyStatusFilter =
+    document.getElementById("historyStatusFilter");
+
+const historyClearFilters =
+    document.getElementById("historyClearFilters");
+
+const historyFirstPage =
+    document.getElementById("historyFirstPage");
+
+const historyPreviousPage =
+    document.getElementById("historyPreviousPage");
+
+const historyNextPage =
+    document.getElementById("historyNextPage");
+
+const historyLastPage =
+    document.getElementById("historyLastPage");
+
+const historyPageInfo =
+    document.getElementById("historyPageInfo");
+
+const historyRecordInfo =
+    document.getElementById("historyRecordInfo");
+
+
+const historyRowsPerPageSelect =
+    document.getElementById("historyRowsPerPage");
+    
+const historyNoResultsRow =
+    document.getElementById("historyNoResultsRow");
+
+    const historyRows = Array.from(
+    document.querySelectorAll(
+        "tbody tr:not(#historyNoResultsRow)"
+    )
+);
+
+let historyRowsPerPage = 10;
+
+let historyCurrentPage = 1;
+
+function getFilteredHistoryRows() {
+
+    const searchText =
+        historySearch.value.trim().toLowerCase();
+
+    const selectedStatus =
+        historyStatusFilter.value.toLowerCase();
+
+    return historyRows.filter(function (row) {
+
+        const jobName =
+            row.cells[1].textContent
+                .trim()
+                .toLowerCase();
+
+        const status =
+            row.cells[2].textContent
+                .trim()
+                .toLowerCase();
+
+        const matchesSearch =
+            jobName.includes(searchText);
+
+        const matchesStatus =
+            selectedStatus === "" ||
+            status === selectedStatus;
+
+        return matchesSearch && matchesStatus;
+
+    });
+
+}
+
+function displayHistoryPage() {
+
+    const filteredRows =
+        getFilteredHistoryRows();
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(
+            filteredRows.length /
+            historyRowsPerPage
+        )
+    );
+
+
+historyNoResultsRow.style.display =
+    filteredRows.length === 0
+        ? ""
+        : "none";
+
+    if (historyCurrentPage > totalPages) {
+        historyCurrentPage = totalPages;
+    }
+
+    const startIndex =
+        (historyCurrentPage - 1) *
+        historyRowsPerPage;
+
+    const endIndex =
+        startIndex + historyRowsPerPage;
+
+    historyRows.forEach(function (row) {
+        row.style.display = "none";
+    });
+
+filteredRows
+        .slice(startIndex, endIndex)
+        .forEach(function (row) {
+            row.style.display = "";
+        });
+
+const visibleStart =
+    filteredRows.length === 0
+        ? 0
+        : startIndex + 1;
+
+const visibleEnd =
+    Math.min(
+        endIndex,
+        filteredRows.length
+    );
+
+historyRecordInfo.textContent =
+    `Showing ${visibleStart}–${visibleEnd} of ${filteredRows.length} records`;
+
+historyPageInfo.textContent =
+        `Page ${historyCurrentPage} of ${totalPages}`;
+
+historyFirstPage.disabled =
+    historyCurrentPage === 1;
+
+historyPreviousPage.disabled =
+    historyCurrentPage === 1;
+
+historyNextPage.disabled =
+    historyCurrentPage === totalPages;
+
+historyLastPage.disabled =
+    historyCurrentPage === totalPages;
+
+}
+function filterHistory() {
+
+    historyCurrentPage = 1;
+
+    localStorage.setItem(
+    "historySearch",
+    historySearch.value
+);
+
+localStorage.setItem(
+    "historyStatus",
+    historyStatusFilter.value
+);
+
+    historyClearFilters.disabled =
+        historySearch.value.trim() === "" &&
+        historyStatusFilter.value === "";
+
+    displayHistoryPage();
+
+}
+
+historySearch.addEventListener(
+    "input",
+    filterHistory
+);
+
+historyStatusFilter.addEventListener(
+    "change",
+    filterHistory
+);
+
+historyClearFilters.addEventListener(
+    "click",
+    function () {
+
+        historySearch.value = "";
+
+        historyStatusFilter.value = "";
+
+historyCurrentPage = 1;
+
+filterHistory();        
+
+    }
+);
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        historySearch.value = "";
+
+        historyStatusFilter.value = "";
+
+historyCurrentPage = 1;
+
+filterHistory();
+
+    }
+);
+
+historyRowsPerPageSelect.addEventListener(
+    "change",
+    function () {
+
+        historyRowsPerPage =
+            Number(historyRowsPerPageSelect.value);
+
+        localStorage.setItem(
+            "historyRowsPerPage",
+            historyRowsPerPageSelect.value
+        );
+
+        historyCurrentPage = 1;
+
+        displayHistoryPage();
+
+    }
+);
+
+historyFirstPage.addEventListener(
+    "click",
+    function () {
+
+        historyCurrentPage = 1;
+
+        displayHistoryPage();
+
+    }
+);
+
+historyPreviousPage.addEventListener(
+    "click",
+    function () {
+
+        if (historyCurrentPage > 1) {
+            historyCurrentPage--;
+            displayHistoryPage();
+        }
+
+    }
+);
+
+historyNextPage.addEventListener(
+    "click",
+    function () {
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(
+                getFilteredHistoryRows().length /
+                historyRowsPerPage
+            )
+        );
+
+        if (historyCurrentPage < totalPages) {
+            historyCurrentPage++;
+            displayHistoryPage();
+        }
+
+    }
+);
+
+
+historyLastPage.addEventListener(
+    "click",
+    function () {
+
+        const totalPages = Math.max(
+            1,
+            Math.ceil(
+                getFilteredHistoryRows().length /
+                historyRowsPerPage
+            )
+        );
+
+        historyCurrentPage = totalPages;
+
+        displayHistoryPage();
+
+    }
+);
+
+let historySortColumn = -1;
+let historySortAscending = true;
+
+document.querySelectorAll("thead th").forEach(function (header) {
+
+    header.style.cursor = "pointer";
+
+    header.addEventListener("click", function () {
+
+        const column = Number(header.dataset.column);
+
+if (historySortColumn === column) {
+    historySortAscending = !historySortAscending;
+} else {
+    historySortColumn = column;
+
+    if (column === 0) {
+        historySortAscending = false;
+    } else {
+        historySortAscending = true;
+    }
+}
+
+document.querySelectorAll("thead th").forEach(function (item) {
+
+    item.textContent = item.dataset.label;
+
+    if (Number(item.dataset.column) === 0) {
+        item.textContent += " ▼";
+    }
+
+});
+
+header.textContent =
+    header.dataset.label +
+    (historySortAscending ? " ▲" : " ▼");
+
+        historyRows.sort(function (a, b) {
+
+            let valueA = a.cells[column].innerText.trim().toLowerCase();
+            let valueB = b.cells[column].innerText.trim().toLowerCase();
+
+            const numberA = parseFloat(valueA);
+            const numberB = parseFloat(valueB);
+
+            if (!isNaN(numberA) && !isNaN(numberB)) {
+                valueA = numberA;
+                valueB = numberB;
+            }
+
+            if (valueA < valueB)
+                return historySortAscending ? -1 : 1;
+
+            if (valueA > valueB)
+                return historySortAscending ? 1 : -1;
+
+            return 0;
+
+        });
+
+        const tbody = document.querySelector("tbody");
+
+        historyRows.forEach(function (row) {
+            tbody.appendChild(row);
+        });
+
+        historyCurrentPage = 1;
+
+        displayHistoryPage();
+
+    });
+
+});
+
+historyRows.forEach(function (row) {
+
+    row.style.cursor = "pointer";
+
+    row.addEventListener("click", function (event) {
+
+        if (
+            event.target.closest("a") ||
+            event.target.closest("button")
+        ) {
+            return;
+        }
+
+        const executionLink =
+            row.querySelector(".execution-link");
+
+        if (executionLink) {
+            window.location.href =
+                executionLink.href;
+        }
+
+    });
+
+});
+
+historySortColumn = 0;
+historySortAscending = false;
+
+const defaultHeader =
+    document.querySelector('th[data-column="0"]');
+
+defaultHeader.textContent =
+    defaultHeader.dataset.label + " ▼";
+
+historyRows.sort(function (a, b) {
+
+    return Number(b.cells[0].innerText) -
+           Number(a.cells[0].innerText);
+
+});
+
+const tbody = document.querySelector("tbody");
+
+historyRows.forEach(function (row) {
+
+    tbody.appendChild(row);
+
+});
+
+historySearch.value =
+    localStorage.getItem("historySearch") || "";
+
+historyStatusFilter.value =
+    localStorage.getItem("historyStatus") || "";
+
+historyRowsPerPageSelect.value =
+    localStorage.getItem("historyRowsPerPage") || "10";
+
+historyRowsPerPage =
+    Number(historyRowsPerPageSelect.value);
+
+historyClearFilters.disabled =
+    historySearch.value.trim() === "" &&
+    historyStatusFilter.value === "";
+
+historyCurrentPage = 1;
+
+filterHistory();
+
+historySearch.focus();
+
+historySearch.select();
+
+</script>
+
+
 
 </body>
 

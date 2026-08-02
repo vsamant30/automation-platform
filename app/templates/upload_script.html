@@ -253,7 +253,24 @@
                 action="/upload-script"
                 method="post"
                 enctype="multipart/form-data"
+                id="uploadScriptForm"
             >
+
+            {% if validation_error %}
+<div
+    style="
+        background:#f8d7da;
+        color:#842029;
+        border:1px solid #f5c2c7;
+        padding:12px;
+        margin-bottom:20px;
+        border-radius:6px;
+        font-weight:bold;
+    "
+>
+    {{ validation_error }}
+</div>
+{% endif %}
 
                 <div class="form-group">
 
@@ -265,12 +282,23 @@
                     </label>
 
                     <input
-                        id="job_name"
-                        type="text"
-                        name="job_name"
-                        placeholder="Enter a descriptive job name"
-                        required
-                    >
+    id="job_name"
+    type="text"
+    name="job_name"
+    value="{{ job_name or '' }}"
+    placeholder="Enter a descriptive job name"
+    required
+>
+
+<small
+    id="job-name-message"
+    style="
+        display:block;
+        margin-top:7px;
+        font-weight:bold;
+    "
+></small>
+
 
                 </div>
 
@@ -284,10 +312,9 @@
                     </label>
 
                     <textarea
-                        id="description"
                         name="description"
                         placeholder="Describe what this automation does"
-                    ></textarea>
+                    >{{ description or '' }}</textarea>
 
                 </div>
 
@@ -305,17 +332,28 @@
                         name="script_type"
                         required
                     >
-                        <option value="python">
-                            Python
-                        </option>
+                        <option
+    value="python"
+    {% if script_type == "python" %}selected{% endif %}
+>
+    Python
+</option>
 
-                        <option value="powershell">
-                            PowerShell
-                        </option>
+<option
+    value="powershell"
+    {% if script_type == "powershell" %}selected{% endif %}
+>
+    PowerShell
+</option>
 
-                        <option value="batch">
-                            Batch
-                        </option>
+<option
+    value="batch"
+    {% if script_type == "batch" %}selected{% endif %}
+>
+    Batch
+</option>
+
+
                     </select>
 
                     <div class="help-text">
@@ -352,6 +390,7 @@
                     <button
                         type="submit"
                         class="btn btn-success"
+                        id="uploadScriptButton"
                     >
                         📂 Upload Script
                     </button>
@@ -370,6 +409,89 @@
         </div>
 
     </div>
+
+
+<script>
+const uploadForm = document.getElementById("uploadScriptForm");
+const jobNameInput = document.getElementById("job_name");
+const jobNameMessage = document.getElementById("job-name-message");
+const uploadButton = document.getElementById("uploadScriptButton");
+
+let validationTimer;
+let jobNameIsValid = false;
+
+function clearJobNameMessage() {
+    jobNameMessage.textContent = "";
+    jobNameMessage.style.color = "";
+}
+
+function setUploadButtonState() {
+    uploadButton.disabled = !jobNameIsValid;
+}
+
+jobNameInput.addEventListener("input", function () {
+    clearTimeout(validationTimer);
+
+    const name = jobNameInput.value.trim();
+
+    if (name === "") {
+        clearJobNameMessage();
+        jobNameIsValid = false;
+        setUploadButtonState();
+        return;
+    }
+
+    jobNameMessage.style.color = "#6c757d";
+    jobNameMessage.textContent = "Checking job name...";
+
+    jobNameIsValid = false;
+    setUploadButtonState();
+
+    validationTimer = setTimeout(async function () {
+        try {
+            const response = await fetch(
+                "/jobs/check-name?name=" + encodeURIComponent(name)
+            );
+
+            if (!response.ok) {
+                throw new Error("Unable to validate job name.");
+            }
+
+            const data = await response.json();
+
+            if (!data.valid) {
+                jobNameMessage.style.color = "#dc3545";
+                jobNameMessage.textContent = data.message;
+                jobNameIsValid = false;
+            } else {
+                jobNameMessage.style.color = "#198754";
+                jobNameMessage.textContent = data.message;
+                jobNameIsValid = true;
+            }
+
+            setUploadButtonState();
+
+        } catch (error) {
+            jobNameMessage.style.color = "#dc3545";
+            jobNameMessage.textContent =
+                "Unable to validate the job name. Please try again.";
+
+            jobNameIsValid = false;
+            setUploadButtonState();
+        }
+    }, 400);
+});
+
+uploadForm.addEventListener("submit", function (event) {
+    if (!jobNameIsValid) {
+        event.preventDefault();
+        jobNameInput.focus();
+    }
+});
+
+setUploadButtonState();
+</script>
+
 
 </body>
 

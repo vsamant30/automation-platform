@@ -28,12 +28,6 @@ class Job(Base):
         String,
         nullable=False,
     )
-    
-    category = Column(
-        String,
-        nullable=False,
-        default="General",
-   )
 
     description = Column(
         Text,
@@ -50,27 +44,13 @@ class Job(Base):
         String,
         nullable=True,
     )
-    
-    
-    is_enabled = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
-    
-    
+
     # Scheduling Information
     schedule_enabled = Column(
         Boolean,
         default=False,
         nullable=False,
     )
-    
-    schedule_paused = Column(
-        Boolean,
-        default=False,
-        nullable=False,
-   )
 
     schedule_type = Column(
         String,
@@ -184,50 +164,4 @@ class JobExecution(Base):
     created_at = Column(
         DateTime,
         default=datetime.utcnow,
-    )
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True,
-    )
-
-    username = Column(
-        String,
-        unique=True,
-        index=True,
-        nullable=False,
-    )
-
-    email = Column(
-        String,
-        unique=True,
-        index=True,
-        nullable=True,
-    )
-
-    hashed_password = Column(
-        String,
-        nullable=False,
-    )
-
-    role = Column(
-        String,
-        default="admin",
-        nullable=False,
-    )
-
-    is_active = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False,
     )

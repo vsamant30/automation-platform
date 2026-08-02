@@ -85,6 +85,20 @@ def execute_scheduled_job(job_id: int) -> None:
                 job_id,
             )
             return
+        
+        if job.schedule_paused:
+            logger.info(
+                "Job %s schedule is paused.",
+                job_id,
+            )
+            return
+        
+        if not job.is_enabled:
+            logger.info(
+                "Job %s is disabled.",
+                job_id,
+            )
+            return
 
         started_at = datetime.utcnow()
 
@@ -273,6 +287,84 @@ def remove_scheduled_job(job_id: int) -> None:
         db.close()
 
 
+def pause_scheduled_job(job_id: int) -> None:
+    """Pause a scheduled job without deleting its schedule configuration."""
+    db = SessionLocal()
+
+    try:
+        job = db.query(Job).filter(Job.id == job_id).first()
+
+        if not job:
+            raise ValueError(
+                f"Job not found: {job_id}"
+            )
+
+        if not job.schedule_enabled:
+            raise ValueError(
+                "This job does not have scheduling enabled."
+            )
+
+        job.schedule_paused = True
+        
+
+        db.commit()
+
+        remove_scheduled_job(job_id)
+
+        logger.info(
+            "Paused scheduled job: %s",
+            job_id,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+def resume_scheduled_job(job_id: int) -> None:
+    """Resume a previously paused scheduled job."""
+    db = SessionLocal()
+
+    try:
+        job = db.query(Job).filter(Job.id == job_id).first()
+
+        if not job:
+            raise ValueError(
+                f"Job not found: {job_id}"
+            )
+
+        if not job.schedule_enabled:
+            raise ValueError(
+                "This job does not have scheduling enabled."
+            )
+
+        if job.schedule_type == "manual":
+            raise ValueError(
+                "Manual jobs cannot be resumed as scheduled jobs."
+            )
+
+        job.schedule_paused = False
+
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+    sync_job_schedule(job_id)
+
+    logger.info(
+        "Resumed scheduled job: %s",
+        job_id,
+    )
+
+
 def sync_job_schedule(job_id: int) -> None:
     """Create, replace, or remove one database job schedule."""
     db = SessionLocal()
@@ -285,11 +377,15 @@ def sync_job_schedule(job_id: int) -> None:
             return
 
         if (
-            not job.schedule_enabled
+            not job.is_enabled
+            or not job.schedule_enabled
+            or job.schedule_paused
             or job.schedule_type == "manual"
         ):
             remove_scheduled_job(job_id)
             return
+            
+
 
         trigger = build_trigger(job)
 
@@ -324,7 +420,11 @@ def load_enabled_jobs() -> None:
             job.id
             for job in (
                 db.query(Job)
-                .filter(Job.schedule_enabled.is_(True))
+                .filter(
+                    Job.schedule_enabled.is_(True),
+                    Job.schedule_paused.is_(False),
+                )
+                
                 .all()
             )
         ]

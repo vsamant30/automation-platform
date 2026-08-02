@@ -1,28 +1,51 @@
 import os
 import shutil
 
+from app.services.job_name_validator import validate_job_name
+
+from fastapi import HTTPException
+
 from datetime import datetime
 
 from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.staticfiles import StaticFiles
 from fastapi.requests import Request
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api.jobs import router as jobs_router
+from app.api.auth import router as auth_router
+from app.api.pages import router as pages_router
+
+from app.core.auth import (
+    create_access_token,
+    get_current_user_from_cookie,
+    require_admin,
+)
+
+from app.core.security import verify_password
+from app.db.database import engine
+from app.db.models import Base
+
 from app.db.database import SessionLocal
-from app.db.models import Job, JobExecution
+from app.db.models import Job, JobExecution, User
+
+from app.api.users import router as users_router
+
+from fastapi import Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 from app.scheduler.scheduler import (
     start_scheduler,
     sync_job_schedule,
+    pause_scheduled_job,
+    resume_scheduled_job,
 )
 
-from app.services.execution_logger import (
-    get_execution_log_path,
-    write_execution_log,
-)
+from app.services.execution_logger import get_execution_log_path
 
-from app.services.job_runner import execute_job
+from app.services.job_execution_service import execute_job_with_history
 
 from fastapi import FastAPI, Request, Form, HTTPException
 
@@ -34,158 +57,101 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 templates = Jinja2Templates(directory="app/templates")
 
 
 @app.on_event("startup")
 def startup_event():
+    Base.metadata.create_all(bind=engine)
     start_scheduler()
-
-
-@app.get("/dashboard")
-def dashboard(request: Request):
-    db = SessionLocal()
-
-    try:
-        jobs = db.query(Job).all()
-
-        total_jobs = db.query(Job).count()
-
-        completed_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Completed")
-            .count()
-        )
-
-        running_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Running")
-            .count()
-        )
-
-        failed_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Failed")
-            .count()
-        )
-
-        return templates.TemplateResponse(
-            request=request,
-            name="dashboard.html",
-            context={
-                "request": request,
-                "jobs": jobs,
-                "total_jobs": total_jobs,
-                "completed_jobs": completed_jobs,
-                "running_jobs": running_jobs,
-                "failed_jobs": failed_jobs,
-            },
-        )
-
-    finally:
-        db.close()
-        
-
-@app.get("/history")
-def execution_history(request: Request):
-    db = SessionLocal()
-
-    try:
-        executions = (
-            db.query(JobExecution)
-            .order_by(JobExecution.id.desc())
-            .all()
-        )
-
-        return templates.TemplateResponse(
-            request=request,
-            name="history.html",
-            context={
-                "request": request,
-                "executions": executions,
-            },
-        )
-
-    finally:
-        db.close()        
-
-@app.get("/executions/{execution_id}/details")
-def execution_details(
-    execution_id: int,
+    
+    
+@app.post("/login-page")
+async def browser_login(
     request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
 ):
     db = SessionLocal()
 
     try:
-        execution = (
-            db.query(JobExecution)
-            .filter(JobExecution.id == execution_id)
+        cleaned_username = username.strip()
+
+        user = (
+            db.query(User)
+            .filter(User.username == cleaned_username)
             .first()
         )
 
-        if not execution:
-            return RedirectResponse(
-                url="/history",
-                status_code=303,
+        if not user or not verify_password(
+            password,
+            user.hashed_password,
+        ):
+            return templates.TemplateResponse(
+                request=request,
+                name="login.html",
+                context={
+                    "request": request,
+                    "error": "Invalid username or password.",
+                },
+                status_code=401,
             )
 
-        job = (
-            db.query(Job)
-            .filter(Job.id == execution.job_id)
-            .first()
+        if not user.is_active:
+            return templates.TemplateResponse(
+                request=request,
+                name="login.html",
+                context={
+                    "request": request,
+                    "error": "Your account is inactive. Contact the administrator.",
+                },
+                status_code=403,
+            )
+
+        token = create_access_token(
+            {
+                "sub": user.username,
+                "role": user.role,
+            }
         )
 
-        return templates.TemplateResponse(
-            request=request,
-            name="execution_details.html",
-            context={
-                "request": request,
-                "execution": execution,
-                "job": job,
-            },
+        response = RedirectResponse(
+            url="/dashboard",
+            status_code=303,
         )
+
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            samesite="lax",
+            secure=False,
+            max_age=3600,
+            path="/",
+    )
+        return response
 
     finally:
         db.close()
+      
 
-@app.get("/jobs/{job_id}/details")
-def job_details(job_id: int, request: Request):
-    db = SessionLocal()
+@app.get("/logout")
+def logout():
+    response = RedirectResponse(
+        url="/login-page",
+        status_code=303,
+    )
 
-    try:
-        job = (
-            db.query(Job)
-            .filter(Job.id == job_id)
-            .first()
-        )
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
 
-        if not job:
-            return RedirectResponse(
-                url="/dashboard",
-                status_code=303,
-            )
+    return response
 
-        executions = (
-            db.query(JobExecution)
-            .filter(JobExecution.job_id == job_id)
-            .order_by(JobExecution.id.desc())
-            .limit(10)
-            .all()
-        )
-
-        return templates.TemplateResponse(
-            request=request,
-            name="job_details.html",
-            context={
-                "request": request,
-                "job": job,
-                "executions": executions,
-            },
-        )
-
-    finally:
-        db.close()
-        
+            
 @app.get("/executions/{execution_id}/download")
 def download_execution_log(execution_id: int):
     db = SessionLocal()
@@ -220,270 +186,11 @@ def download_execution_log(execution_id: int):
     finally:
         db.close()
 
-@app.get("/jobs/{job_id}/edit")
-def edit_job_page(job_id: int, request: Request):
-    db = SessionLocal()
-
-    try:
-        job = (
-            db.query(Job)
-            .filter(Job.id == job_id)
-            .first()
-        )
-
-        if not job:
-            return RedirectResponse(
-                url="/dashboard",
-                status_code=303,
-            )
-
-        return templates.TemplateResponse(
-            request=request,
-            name="edit_job.html",
-            context={
-                "request": request,
-                "job": job,
-            },
-        )
-
-    finally:
-        db.close()
-
-
-@app.get("/jobs/{job_id}/schedule")
-def schedule_job_page(request: Request, job_id: int):
-    db = SessionLocal()
-
-    try:
-        job = db.query(Job).filter(Job.id == job_id).first()
-
-        if not job:
-            raise HTTPException(
-                status_code=404,
-                detail="Job not found",
-            )
-
-        return templates.TemplateResponse(
-            request=request,
-            name="schedule_job.html",
-            context={
-                "request": request,
-                "job": job,
-           },
-        )
-
-    finally:
-        db.close()
-
-
-
-@app.post("/jobs/{job_id}/schedule")
-def save_job_schedule(
-    job_id: int,
-    schedule_enabled: str | None = Form(None),
-    schedule_type: str = Form("manual"),
-    interval_minutes: str = Form(""),
-    schedule_time: str = Form(""),
-    schedule_day: str = Form("mon"),
-    cron_expression: str = Form(""),
-):
-    db = SessionLocal()
-
-    try:
-        job = (
-            db.query(Job)
-            .filter(Job.id == job_id)
-            .first()
-        )
-
-        if not job:
-            raise HTTPException(
-                status_code=404,
-                detail="Job not found",
-            )
-
-        enabled = schedule_enabled is not None
-        schedule_type = schedule_type.strip().lower()
-
-        # Manual or unchecked scheduling
-        if not enabled or schedule_type == "manual":
-            job.schedule_enabled = False
-            job.schedule_type = "manual"
-            job.schedule_value = None
-            job.next_run = None
-
-        elif schedule_type == "interval":
-            try:
-                minutes = int(interval_minutes)
-            except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Interval must be a valid number.",
-                )
-
-            if minutes < 1:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Interval must be at least 1 minute.",
-                )
-
-            job.schedule_enabled = True
-            job.schedule_type = "interval"
-            job.schedule_value = str(minutes)
-            job.next_run = None
-
-        elif schedule_type == "hourly":
-            if not schedule_time:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Please select an execution time.",
-                )
-
-            job.schedule_enabled = True
-            job.schedule_type = "hourly"
-            job.schedule_value = schedule_time
-            job.next_run = None
-
-        elif schedule_type == "daily":
-            if not schedule_time:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Please select a daily execution time.",
-                )
-
-            job.schedule_enabled = True
-            job.schedule_type = "daily"
-            job.schedule_value = schedule_time
-            job.next_run = None
-
-        elif schedule_type == "weekly":
-            if not schedule_time:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Please select a weekly execution time.",
-                )
-
-            valid_days = {
-                "mon",
-                "tue",
-                "wed",
-                "thu",
-                "fri",
-                "sat",
-                "sun",
-            }
-
-            if schedule_day not in valid_days:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid day of the week.",
-                )
-
-            job.schedule_enabled = True
-            job.schedule_type = "weekly"
-            job.schedule_value = (
-                f"{schedule_day}|{schedule_time}"
-            )
-            job.next_run = None
-
-        elif schedule_type == "cron":
-            cleaned_cron = cron_expression.strip()
-
-            if len(cleaned_cron.split()) != 5:
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "Cron expression must contain "
-                        "exactly 5 fields."
-                    ),
-                )
-
-            job.schedule_enabled = True
-            job.schedule_type = "cron"
-            job.schedule_value = cleaned_cron
-            job.next_run = None
-
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="Unsupported schedule type.",
-            )
-
-        db.commit()
-        db.refresh(job)
-
-        sync_job_schedule(job.id)
-
-        return RedirectResponse(
-            url=f"/jobs/{job.id}/details",
-            status_code=303,
-        )
-
-    except HTTPException:
-        db.rollback()
-        raise
-
-    except Exception:
-        db.rollback()
-        raise
-
-    finally:
-        db.close()
-
-
-
-
-@app.post("/jobs/{job_id}/edit")
-def update_job(
-    job_id: int,
-    job_name: str = Form(...),
-    description: str = Form(""),
-    script_type: str = Form(...),
-    script_path: str = Form(...),
-):
-    db = SessionLocal()
-
-    try:
-        job = (
-            db.query(Job)
-            .filter(Job.id == job_id)
-            .first()
-        )
-
-        if not job:
-            return RedirectResponse(
-                url="/dashboard",
-                status_code=303,
-            )
-
-        job.name = job_name.strip()
-        job.description = description.strip()
-        job.script_type = script_type.strip().lower()
-        job.script_path = script_path.strip()
-
-        db.commit()
-
-        return RedirectResponse(
-            url=f"/jobs/{job.id}/details",
-            status_code=303,
-        )
-
-    finally:
-        db.close()
-
-@app.get("/upload-script")
-def upload_script_page(request: Request):
-
-    return templates.TemplateResponse(
-        request=request,
-        name="upload_script.html",
-        context={
-            "request": request,
-        },
-    )
-    
+        
+            
 @app.post("/upload-script")
 def upload_script(
+    request: Request,
     job_name: str = Form(...),
     description: str = Form(""),
     script_type: str = Form(...),
@@ -492,7 +199,36 @@ def upload_script(
     db = SessionLocal()
 
     try:
-        cleaned_job_name = job_name.strip()
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+       
+
+        require_admin(current_user)
+
+        try:
+            cleaned_job_name = validate_job_name(
+                db=db,
+                job_name=job_name,
+            )
+
+        except HTTPException as error:
+            return templates.TemplateResponse(
+                request=request,
+                name="upload_script.html",
+                context={
+                    "request": request,
+                    "current_user": current_user,
+                    "validation_error": error.detail,
+                    "job_name": job_name,
+                    "description": description,
+                    "script_type": script_type,
+                },
+                status_code=400,
+         )
+
         cleaned_description = description.strip()
         cleaned_script_type = script_type.strip().lower()
 
@@ -603,42 +339,85 @@ def upload_script(
         script_file.file.close()
         db.close()
 
+
+
 @app.post("/dashboard/jobs/create")
-def create_job_from_dashboard(job_name: str = Form(...)):
+def create_job_from_dashboard(
+    request: Request,
+    job_name: str = Form(...),
+    category: str = Form("General"),
+):
     db = SessionLocal()
 
     try:
-        cleaned_name = job_name.strip()
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
 
-        if not cleaned_name:
+        if not current_user:
             return RedirectResponse(
-                url="/dashboard",
+                url="/login-page",
+                status_code=303,
+            )
+            
+        require_admin(current_user)
+
+        try:
+            cleaned_name = validate_job_name(
+                db=db,
+                job_name=job_name,
+            )
+
+        except HTTPException as error:
+            return RedirectResponse(
+                url=f"/dashboard?validation_error={error.detail}",
                 status_code=303,
             )
 
         new_job = Job(
             name=cleaned_name,
+            category=category,
             status="Pending",
         )
 
         db.add(new_job)
         db.commit()
+        db.refresh(new_job)
 
         return RedirectResponse(
-            url="/dashboard",
+            url="/dashboard?created=true",
             status_code=303,
         )
+
+    except Exception:
+        db.rollback()
+        raise
 
     finally:
         db.close()
 
-
 @app.post("/dashboard/jobs/{job_id}/run")
-def run_job_from_dashboard(job_id: int):
+def run_job_from_dashboard(
+    request: Request,
+    job_id: int,
+):
     db = SessionLocal()
-    execution = None
 
     try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+            
+        require_admin(current_user)    
+
         job = (
             db.query(Job)
             .filter(Job.id == job_id)
@@ -651,77 +430,10 @@ def run_job_from_dashboard(job_id: int):
                 status_code=303,
             )
 
-        try:
-            started_at = datetime.utcnow()
-
-            job.status = "Running"
-            job.started_at = started_at
-            job.completed_at = None
-            job.duration = None
-            job.result = None
-            job.error_message = None
-
-            execution = JobExecution(
-                job_id=job.id,
-                job_name=job.name,
-                status="Running",
-                started_at=started_at,
-            )
-
-            db.add(execution)
-            db.commit()
-
-            db.refresh(job)
-            db.refresh(execution)
-
-            result = execute_job(job)
-
-            completed_at = datetime.utcnow()
-            duration = (
-                completed_at - started_at
-            ).total_seconds()
-
-            job.status = "Completed"
-            job.result = result
-            job.error_message = None
-            job.completed_at = completed_at
-            job.duration = duration
-
-            execution.status = "Completed"
-            execution.result = result
-            execution.error_message = None
-            execution.completed_at = completed_at
-            execution.duration = duration
-
-            db.commit()
-            db.refresh(execution)
-            write_execution_log(job, execution)
-
-        except Exception as error:
-            completed_at = datetime.utcnow()
-
-            job.status = "Failed"
-            job.result = None
-            job.error_message = str(error)
-            job.completed_at = completed_at
-
-            if job.started_at:
-                job.duration = (
-                    completed_at - job.started_at
-                ).total_seconds()
-
-            if execution is not None:
-                execution.status = "Failed"
-                execution.result = None
-                execution.error_message = str(error)
-                execution.completed_at = completed_at
-                execution.duration = job.duration
-
-            db.commit()
-
-            if execution is not None:
-                db.refresh(execution)
-                write_execution_log(job, execution)
+        execute_job_with_history(
+            db=db,
+            job=job,
+        )
 
         return RedirectResponse(
             url="/dashboard",
@@ -729,13 +441,234 @@ def run_job_from_dashboard(job_id: int):
         )
 
     finally:
-        db.close()
+        db.close()        
 
-@app.post("/dashboard/jobs/{job_id}/delete")
-def delete_job_from_dashboard(job_id: int):
+@app.post("/dashboard/jobs/{job_id}/pause")
+def pause_job_schedule(
+    request: Request,
+    job_id: int,
+):
     db = SessionLocal()
 
     try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if not job:
+            return RedirectResponse(
+                url="/dashboard",
+                status_code=303,
+            )
+
+        pause_scheduled_job(job_id)
+
+        return RedirectResponse(
+            url="/dashboard?paused=true",
+            status_code=303,
+        )
+
+    finally:
+        db.close()
+
+
+@app.post("/dashboard/jobs/{job_id}/resume")
+def resume_job_schedule(
+    request: Request,
+    job_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if not job:
+            return RedirectResponse(
+                url="/dashboard",
+                status_code=303,
+            )
+
+        resume_scheduled_job(job_id)
+
+        return RedirectResponse(
+            url="/dashboard?resumed=true",
+            status_code=303,
+        )
+
+    finally:
+        db.close()
+        
+
+@app.post("/executions/{execution_id}/retry")
+def retry_execution(
+    request: Request,
+    execution_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        execution = (
+            db.query(JobExecution)
+            .filter(JobExecution.id == execution_id)
+            .first()
+        )
+
+        if not execution:
+            raise HTTPException(
+                status_code=404,
+                detail="Execution not found.",
+            )
+
+        job = (
+            db.query(Job)
+            .filter(Job.id == execution.job_id)
+            .first()
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=404,
+                detail="Job not found.",
+            )
+
+        execute_job_with_history(
+            db=db,
+            job=job,
+        )
+
+        return RedirectResponse(
+           url="/history",
+           status_code=303,
+   )
+
+    finally:
+        db.close()
+
+@app.post("/dashboard/jobs/{job_id}/duplicate")
+def duplicate_job(
+    request: Request,
+    job_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+            
+        require_admin(current_user)
+
+        original_job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if not original_job:
+            return RedirectResponse(
+                url="/dashboard",
+                status_code=303,
+            )
+
+        duplicated_job = Job(
+            name=f"{original_job.name} - Copy",
+            description=original_job.description,
+            script_type=original_job.script_type,
+            script_path=original_job.script_path,
+            status="Pending",
+            schedule_enabled=False,
+        )
+
+        db.add(duplicated_job)
+        db.commit()
+
+        return RedirectResponse(
+            url="/dashboard?duplicated=true",
+            status_code=303,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+
+@app.post("/dashboard/jobs/{job_id}/delete")
+def delete_job(
+    request: Request,
+    job_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+            
+        require_admin(current_user)    
+
         job = (
             db.query(Job)
             .filter(Job.id == job_id)
@@ -747,12 +680,13 @@ def delete_job_from_dashboard(job_id: int):
             db.commit()
 
         return RedirectResponse(
-            url="/dashboard",
+            url="/dashboard?deleted=true",
             status_code=303,
-        )
+)
 
     finally:
-        db.close()
+        db.close()        
+        
 
 
 @app.get("/")
@@ -775,3 +709,16 @@ app.include_router(
     prefix="/jobs",
     tags=["Jobs"],
 )
+
+app.include_router(
+    auth_router,
+    tags=["Authentication"],
+)
+
+app.include_router(users_router)
+
+app.include_router(
+    pages_router,
+    tags=["Browser Pages"],
+)
+
