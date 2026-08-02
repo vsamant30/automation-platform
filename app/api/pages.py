@@ -1,5 +1,10 @@
 from app.services.job_name_validator import validate_job_name
 
+
+import json
+
+from app.services.audit_service import log_audit_event
+
 from fastapi import APIRouter, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -478,15 +483,44 @@ def update_job(
             )
             
             
+        old_value = json.dumps(
+            {
+               "name": job.name,
+               "description": job.description,
+               "script_type": job.script_type,
+               "category": job.category,
+               "script_path": job.script_path,
+            },
+            default=str,
+        )
+
         job.name = cleaned_name
-        
-        
-        
-        
         job.description = description.strip()
         job.script_type = script_type.strip().lower()
         job.category = category.strip()
         job.script_path = script_path.strip()
+
+        new_value = json.dumps(
+            {
+               "name": job.name,
+               "description": job.description,
+               "script_type": job.script_type,
+               "category": job.category,
+               "script_path": job.script_path,
+            },
+            default=str,
+        )
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="EDIT_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_value,
+            new_value=new_value,
+        )
 
         db.commit()
 
