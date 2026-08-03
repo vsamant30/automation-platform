@@ -505,7 +505,25 @@ def pause_job_schedule(
                 status_code=303,
             )
 
+        old_value = str(job.schedule_paused)
+
         pause_scheduled_job(job_id)
+
+        db.expire(job)
+        db.refresh(job)
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="PAUSE_SCHEDULE",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_value,
+            new_value=str(job.schedule_paused),
+        )
+
+        db.commit()
 
         return RedirectResponse(
             url="/dashboard?paused=true",
@@ -514,7 +532,6 @@ def pause_job_schedule(
 
     finally:
         db.close()
-
 
 @app.post("/dashboard/jobs/{job_id}/resume")
 def resume_job_schedule(
@@ -549,7 +566,25 @@ def resume_job_schedule(
                 status_code=303,
             )
 
+        old_value = str(job.schedule_paused)
+
         resume_scheduled_job(job_id)
+
+        db.expire(job)
+        db.refresh(job)
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="RESUME_SCHEDULE",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_value,
+            new_value=str(job.schedule_paused),
+        )
+
+        db.commit()
 
         return RedirectResponse(
             url="/dashboard?resumed=true",
@@ -558,7 +593,6 @@ def resume_job_schedule(
 
     finally:
         db.close()
-        
 
 @app.post("/executions/{execution_id}/retry")
 def retry_execution(
