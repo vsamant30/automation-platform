@@ -14,7 +14,13 @@ from app.core.auth import (
     require_admin,
 )
 from app.db.database import SessionLocal
-from app.db.models import Job, JobExecution
+
+from app.db.models import (
+    Job,
+    JobExecution,
+    AuditLog,
+)
+
 from app.scheduler.scheduler import sync_job_schedule
 from fastapi import HTTPException
 
@@ -206,7 +212,43 @@ def execution_history(request: Request):
     finally:
         db.close()
 
+@router.get("/audit-logs")
+def audit_logs_page(request: Request):
+    db = SessionLocal()
 
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        audit_logs = (
+            db.query(AuditLog)
+            .order_by(AuditLog.id.desc())
+            .limit(200)
+            .all()
+        )
+
+        return templates.TemplateResponse(
+            request=request,
+            name="audit_logs.html",
+            context={
+                "request": request,
+                "current_user": current_user,
+                "audit_logs": audit_logs,
+            },
+        )
+
+    finally:
+        db.close()
 
 @router.get("/executions/{execution_id}/details")
 def execution_details(

@@ -94,8 +94,22 @@ def run_job(
     )
 
     try:
+        old_status = job.status
+
         job.status = "Running"
         job.started_at = datetime.utcnow()
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="RUN_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_status,
+            new_value="Running (manual execution)",
+        )
+
         db.commit()
 
         result = execute_job(job.name)

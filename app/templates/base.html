@@ -68,6 +68,18 @@
     <span>Execution History</span>
 </a>
 
+{% if current_user.role|lower == "admin" %}
+
+<a
+    href="/audit-logs"
+    class="sidebar-link {% if request.url.path == '/audit-logs' %}active{% endif %}"
+>
+    <span class="sidebar-icon">📋</span>
+    <span>Audit Logs</span>
+</a>
+
+{% endif %}
+
     </nav>
 
     <div class="sidebar-footer">
