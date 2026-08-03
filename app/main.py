@@ -327,6 +327,27 @@ def upload_script(
         )
 
         db.add(new_job)
+        db.flush()
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="UPLOAD_SCRIPT",
+            entity_type="Job",
+            entity_id=new_job.id,
+            new_value=json.dumps(
+                {
+                    "job_name": new_job.name,
+                    "description": new_job.description,
+                    "script_type": new_job.script_type,
+                    "original_filename": original_filename,
+                    "stored_path": new_job.script_path,
+                },
+                default=str,
+            ),
+        )
+
         db.commit()
         db.refresh(new_job)
 
