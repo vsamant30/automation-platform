@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.api.jobs import router as jobs_router
+from app.api.jobs_v1 import router as jobs_v1_router
 from app.api.auth import router as auth_router
 from app.api.pages import router as pages_router
 
@@ -868,7 +869,7 @@ app.include_router(
 )
 
 app.include_router(
-    jobs_router,
+    jobs_v1_router,
     prefix="/api/v1/jobs",
     tags=["API v1 - Jobs"],
 )
