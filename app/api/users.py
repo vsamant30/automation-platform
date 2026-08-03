@@ -12,8 +12,7 @@ from app.schemas.user import (
     UserResponse,
 )
 
-router = APIRouter(prefix="/users", tags=["Users"])
-
+router = APIRouter()
 
 @router.get("/", response_model=list[UserResponse])
 def get_users(

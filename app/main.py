@@ -56,9 +56,15 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from uuid import uuid4
 
 app = FastAPI(
-    title="Automation Platform",
-    description="Local automation job management platform",
-    version="1.0.0",
+    title="Automation Platform API",
+    description=(
+        "Automation job management, scheduling, "
+        "execution, and audit platform."
+    ),
+    version="2.0.0-dev",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -836,19 +842,44 @@ def health_check():
     }
 
 
+# Existing routes retained for browser compatibility.
 app.include_router(
     jobs_router,
     prefix="/jobs",
-    tags=["Jobs"],
+    tags=["Legacy Jobs API"],
 )
 
 app.include_router(
     auth_router,
-    tags=["Authentication"],
+    tags=["Legacy Authentication API"],
 )
 
-app.include_router(users_router)
+app.include_router(
+    users_router,
+    prefix="/users",
+    tags=["Legacy Users API"],
+)
 
+# Versioned REST API for v2.0 clients.
+app.include_router(
+    auth_router,
+    prefix="/api/v1/auth",
+    tags=["API v1 - Authentication"],
+)
+
+app.include_router(
+    jobs_router,
+    prefix="/api/v1/jobs",
+    tags=["API v1 - Jobs"],
+)
+
+app.include_router(
+    users_router,
+    prefix="/api/v1/users",
+    tags=["API v1 - Users"],
+)
+
+# Browser pages must remain unversioned.
 app.include_router(
     pages_router,
     tags=["Browser Pages"],
