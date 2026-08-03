@@ -605,9 +605,20 @@ def retry_execution(
                 detail="Job not found.",
             )
 
-        execute_job_with_history(
+        log_audit_event(
             db=db,
-            job=job,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="RETRY_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=f"Execution ID {execution.id}",
+            new_value="Retry requested",
+        )
+
+        execute_job_with_history(
+           db=db,
+           job=job,
         )
 
         return RedirectResponse(
