@@ -706,7 +706,21 @@ def duplicate_job(
         )
 
         db.add(duplicated_job)
+        db.flush()
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="DUPLICATE_JOB",
+            entity_type="Job",
+            entity_id=duplicated_job.id,
+            old_value=f"Copied from Job ID {original_job.id}",
+            new_value=f"Created duplicate '{duplicated_job.name}'",
+        )
+
         db.commit()
+        db.refresh(duplicated_job)
 
         return RedirectResponse(
             url="/dashboard?duplicated=true",
