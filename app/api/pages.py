@@ -102,7 +102,7 @@ def dashboard(request: Request):
 
     finally:
         db.close()
-        
+
 
 @router.get("/api/dashboard-data")
 def dashboard_data(request: Request):
@@ -158,7 +158,7 @@ def dashboard_data(request: Request):
                         if job.created_at
                         else ""
                     ),
-                    
+
                     "is_enabled": job.is_enabled,
                     "schedule_enabled": job.schedule_enabled,
                     "schedule_paused": job.schedule_paused,
@@ -168,9 +168,9 @@ def dashboard_data(request: Request):
         }
 
     finally:
-        db.close()        
-        
-        
+        db.close()
+
+
 @router.get("/history")
 def execution_history(request: Request):
     db = SessionLocal()
@@ -204,10 +204,10 @@ def execution_history(request: Request):
         )
 
     finally:
-        db.close()        
-        
-        
-        
+        db.close()
+
+
+
 @router.get("/executions/{execution_id}/details")
 def execution_details(
     execution_id: int,
@@ -258,8 +258,8 @@ def execution_details(
 
     finally:
         db.close()
-        
-        
+
+
 @router.get("/jobs/{job_id}/details")
 def job_details(job_id: int, request: Request):
     db = SessionLocal()
@@ -309,7 +309,7 @@ def job_details(job_id: int, request: Request):
 
     finally:
         db.close()
-        
+
 @router.get("/jobs/{job_id}/edit")
 def edit_job_page(job_id: int, request: Request):
     db = SessionLocal()
@@ -325,8 +325,8 @@ def edit_job_page(job_id: int, request: Request):
                 url="/login-page",
                 status_code=303,
             )
-            
-        require_admin(current_user)    
+
+        require_admin(current_user)
 
         job = (
             db.query(Job)
@@ -352,8 +352,8 @@ def edit_job_page(job_id: int, request: Request):
 
     finally:
         db.close()
-        
-        
+
+
 @router.get("/jobs/{job_id}/schedule")
 def schedule_job_page(request: Request, job_id: int):
     db = SessionLocal()
@@ -369,7 +369,7 @@ def schedule_job_page(request: Request, job_id: int):
                 url="/login-page",
                 status_code=303,
             )
-            
+
         require_admin(current_user)
 
         job = (
@@ -396,8 +396,8 @@ def schedule_job_page(request: Request, job_id: int):
 
     finally:
         db.close()
-        
-        
+
+
 @router.get("/upload-script")
 def upload_script_page(request: Request):
     db = SessionLocal()
@@ -413,8 +413,8 @@ def upload_script_page(request: Request):
                 url="/login-page",
                 status_code=303,
             )
-            
-        require_admin(current_user)    
+
+        require_admin(current_user)
 
         return templates.TemplateResponse(
             request=request,
@@ -427,7 +427,7 @@ def upload_script_page(request: Request):
 
     finally:
         db.close()
-        
+
 
 @router.post("/jobs/{job_id}/edit")
 def update_job(
@@ -452,8 +452,8 @@ def update_job(
                 url="/login-page",
                 status_code=303,
             )
-            
-        require_admin(current_user)    
+
+        require_admin(current_user)
 
         job = (
             db.query(Job)
@@ -481,8 +481,8 @@ def update_job(
                 ),
                 status_code=303,
             )
-            
-            
+
+
         old_value = json.dumps(
             {
                "name": job.name,
@@ -531,8 +531,8 @@ def update_job(
 
     finally:
         db.close()
-        
-        
+
+
 @router.post("/jobs/{job_id}/schedule")
 def save_job_schedule(
     request: Request,
@@ -557,8 +557,8 @@ def save_job_schedule(
                 url="/login-page",
                 status_code=303,
             )
-            
-        require_admin(current_user)    
+
+        require_admin(current_user)
 
         job = (
             db.query(Job)
@@ -574,6 +574,16 @@ def save_job_schedule(
 
         enabled = schedule_enabled is not None
         schedule_type = schedule_type.strip().lower()
+
+        old_value = json.dumps(
+            {
+                "schedule_enabled": job.schedule_enabled,
+                "schedule_type": job.schedule_type,
+                "schedule_value": job.schedule_value,
+                "next_run": job.next_run,
+            },
+            default=str,
+        )
 
         if not enabled or schedule_type == "manual":
             job.schedule_enabled = False
@@ -677,6 +687,27 @@ def save_job_schedule(
                 status_code=400,
                 detail="Unsupported schedule type.",
             )
+
+        new_value = json.dumps(
+            {
+                "schedule_enabled": job.schedule_enabled,
+                "schedule_type": job.schedule_type,
+                "schedule_value": job.schedule_value,
+                "next_run": job.next_run,
+            },
+            default=str,
+        )
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="SCHEDULE_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_value,
+            new_value=new_value,
+        )
 
         db.commit()
         db.refresh(job)
