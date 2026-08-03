@@ -158,3 +158,66 @@ def run_job_v1(
             status_code=500,
             detail=str(ex),
         )
+
+@router.put(
+    "/{job_id}/toggle",
+    response_model=ApiResponse[dict],
+)
+def toggle_job_v1(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+
+    job = (
+        db.query(Job)
+        .filter(Job.id == job_id)
+        .first()
+    )
+
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found",
+        )
+
+    old_value = str(job.is_enabled)
+
+    try:
+        job.is_enabled = not job.is_enabled
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action=(
+                "ENABLE_JOB"
+                if job.is_enabled
+                else "DISABLE_JOB"
+            ),
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_value,
+            new_value=str(job.is_enabled),
+        )
+
+        db.commit()
+        db.refresh(job)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return ApiResponse(
+        success=True,
+        message=(
+            "Job enabled successfully."
+            if job.is_enabled
+            else "Job disabled successfully."
+        ),
+        data={
+            "job_id": job.id,
+            "is_enabled": job.is_enabled,
+        },
+    )
