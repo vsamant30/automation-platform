@@ -1,12 +1,24 @@
 from app.services.job_name_validator import validate_job_name
 
 
+import csv
+import io
 import json
 
 from app.services.audit_service import log_audit_event
 
-from fastapi import APIRouter, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import (
+    APIRouter,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+)
+from fastapi.responses import (
+    HTMLResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.templating import Jinja2Templates
 
 from app.core.auth import (
@@ -211,6 +223,120 @@ def execution_history(request: Request):
 
     finally:
         db.close()
+
+
+@router.get("/history/export.csv")
+def export_execution_history(
+    request: Request,
+    search: str = Query(""),
+    status: str = Query(""),
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        query = db.query(JobExecution)
+
+        cleaned_search = search.strip()
+        cleaned_status = status.strip()
+
+        if cleaned_search:
+            query = query.filter(
+                JobExecution.job_name.ilike(
+                    f"%{cleaned_search}%"
+                )
+            )
+
+        if cleaned_status:
+            query = query.filter(
+                JobExecution.status.ilike(
+                    cleaned_status
+                )
+            )
+
+        executions = (
+            query
+            .order_by(JobExecution.id.desc())
+            .all()
+        )
+
+        def safe_csv_value(value):
+            if value is None:
+                return ""
+
+            text = str(value)
+
+            if text.startswith(("=", "+", "-", "@")):
+                return f"'{text}"
+
+            return text
+
+        output = io.StringIO(newline="")
+
+        writer = csv.writer(output)
+
+        writer.writerow(
+            [
+                "Execution ID",
+                "Job ID",
+                "Job Name",
+                "Status",
+                "Started At",
+                "Completed At",
+                "Duration Seconds",
+                "Result",
+                "Error Message",
+                "Created At",
+            ]
+        )
+
+        for execution in executions:
+            writer.writerow(
+                [
+                    safe_csv_value(execution.id),
+                    safe_csv_value(execution.job_id),
+                    safe_csv_value(execution.job_name),
+                    safe_csv_value(execution.status),
+                    safe_csv_value(execution.started_at),
+                    safe_csv_value(execution.completed_at),
+                    safe_csv_value(
+                        execution.duration
+                        if execution.duration is not None
+                        else ""
+                    ),
+                    safe_csv_value(execution.result),
+                    safe_csv_value(execution.error_message),
+                    safe_csv_value(execution.created_at),
+                ]
+            )
+
+        csv_content = output.getvalue()
+        output.close()
+
+        response = StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv; charset=utf-8",
+        )
+
+        response.headers["Content-Disposition"] = (
+            'attachment; filename="execution_history.csv"'
+        )
+
+        return response
+
+    finally:
+        db.close()
+
 
 @router.get("/audit-logs")
 def audit_logs_page(request: Request):

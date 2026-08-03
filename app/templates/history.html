@@ -410,6 +410,14 @@ tbody tr:hover {
     Clear Filters
 </button>
 
+<a
+    href="/history/export.csv"
+    id="historyExportCsv"
+    class="btn btn-success"
+>
+    Export CSV
+</a>
+
     </div>
 
 </div>
@@ -613,7 +621,7 @@ tbody tr:hover {
 
         </div>
 
-        
+
 
     </div>
 
@@ -630,6 +638,9 @@ const historyStatusFilter =
 
 const historyClearFilters =
     document.getElementById("historyClearFilters");
+
+const historyExportCsv =
+    document.getElementById("historyExportCsv");
 
 const historyFirstPage =
     document.getElementById("historyFirstPage");
@@ -652,7 +663,7 @@ const historyRecordInfo =
 
 const historyRowsPerPageSelect =
     document.getElementById("historyRowsPerPage");
-    
+
 const historyNoResultsRow =
     document.getElementById("historyNoResultsRow");
 
@@ -787,6 +798,29 @@ localStorage.setItem(
         historySearch.value.trim() === "" &&
         historyStatusFilter.value === "";
 
+    const exportParameters = new URLSearchParams();
+
+    if (historySearch.value.trim()) {
+        exportParameters.set(
+            "search",
+            historySearch.value.trim()
+        );
+    }
+
+    if (historyStatusFilter.value) {
+        exportParameters.set(
+            "status",
+            historyStatusFilter.value
+        );
+    }
+
+    const exportQuery = exportParameters.toString();
+
+    historyExportCsv.href = exportQuery
+        ? `/history/export.csv?${exportQuery}`
+        : "/history/export.csv";
+
+
     displayHistoryPage();
 
 }
@@ -811,7 +845,7 @@ historyClearFilters.addEventListener(
 
 historyCurrentPage = 1;
 
-filterHistory();        
+filterHistory();
 
     }
 );
