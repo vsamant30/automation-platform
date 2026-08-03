@@ -446,6 +446,19 @@ def run_job_from_dashboard(
                 status_code=303,
             )
 
+        old_status = job.status
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="RUN_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=old_status,
+            new_value="Running (manual execution)",
+        )
+
         execute_job_with_history(
             db=db,
             job=job,
