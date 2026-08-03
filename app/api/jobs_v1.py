@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -219,5 +219,54 @@ def toggle_job_v1(
         data={
             "job_id": job.id,
             "is_enabled": job.is_enabled,
+        },
+    )
+
+@router.get(
+    "/check-name",
+    response_model=ApiResponse[dict],
+)
+def check_job_name_v1(
+    name: str = Query(...),
+    exclude_job_id: int | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    cleaned_name = name.strip()
+
+    if not cleaned_name:
+        return ApiResponse(
+            success=False,
+            message="Job name is required.",
+            data={
+                "valid": False,
+                "exists": False,
+                "name": cleaned_name,
+            },
+        )
+
+    if len(cleaned_name) > 100:
+        return ApiResponse(
+            success=False,
+            message="Job name must not exceed 100 characters.",
+            data={
+                "valid": False,
+                "exists": False,
+                "name": cleaned_name,
+            },
+        )
+
+    validated_name = validate_job_name(
+        db=db,
+        job_name=cleaned_name,
+        exclude_job_id=exclude_job_id,
+    )
+
+    return ApiResponse(
+        success=True,
+        message="Job name validation completed.",
+        data={
+            "valid": True,
+            "exists": False,
+            "name": validated_name,
         },
     )
