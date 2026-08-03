@@ -2,7 +2,24 @@
 
 {% block content %}
 
-<h2>Audit Logs</h2>
+<div
+    style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 18px;
+    "
+>
+    <h2 style="margin: 0;">Audit Logs</h2>
+
+    <a
+        href="/audit-logs/export.csv"
+        class="btn btn-success"
+    >
+        Export CSV
+    </a>
+</div>
 
 <div class="card mt-3">
 

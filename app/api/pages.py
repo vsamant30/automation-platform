@@ -376,6 +376,95 @@ def audit_logs_page(request: Request):
     finally:
         db.close()
 
+@router.get("/audit-logs/export.csv")
+def export_audit_logs(request: Request):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        audit_logs = (
+            db.query(AuditLog)
+            .order_by(AuditLog.id.desc())
+            .all()
+        )
+
+        def safe_csv_value(value):
+            if value is None:
+                return ""
+
+            text = str(value)
+
+            if text.startswith(("=", "+", "-", "@")):
+                return f"'{text}"
+
+            return text
+
+        output = io.StringIO(newline="")
+
+        writer = csv.writer(output)
+
+        writer.writerow(
+            [
+                "Audit ID",
+                "Created At",
+                "User ID",
+                "Username",
+                "Action",
+                "Entity Type",
+                "Entity ID",
+                "Old Value",
+                "New Value",
+                "IP Address",
+            ]
+        )
+
+        for audit in audit_logs:
+            writer.writerow(
+                [
+                    safe_csv_value(audit.id),
+                    safe_csv_value(audit.created_at),
+                    safe_csv_value(audit.user_id),
+                    safe_csv_value(audit.username),
+                    safe_csv_value(audit.action),
+                    safe_csv_value(audit.entity_type),
+                    safe_csv_value(audit.entity_id),
+                    safe_csv_value(audit.old_value),
+                    safe_csv_value(audit.new_value),
+                    safe_csv_value(audit.ip_address),
+                ]
+            )
+
+        csv_content = output.getvalue()
+        output.close()
+
+        response = StreamingResponse(
+            iter([csv_content]),
+            media_type="text/csv; charset=utf-8",
+        )
+
+        response.headers["Content-Disposition"] = (
+            'attachment; filename="audit_logs.csv"'
+        )
+
+        return response
+
+    finally:
+        db.close()
+
+
+
 @router.get("/executions/{execution_id}/details")
 def execution_details(
     execution_id: int,
