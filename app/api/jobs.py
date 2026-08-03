@@ -181,7 +181,24 @@ def toggle_job(
             detail="Job not found",
         )
 
+    old_value = str(job.is_enabled)
+
     job.is_enabled = not job.is_enabled
+
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action=(
+            "ENABLE_JOB"
+            if job.is_enabled
+            else "DISABLE_JOB"
+        ),
+        entity_type="Job",
+        entity_id=job.id,
+        old_value=old_value,
+        new_value=str(job.is_enabled),
+    )
 
     db.commit()
     db.refresh(job)
