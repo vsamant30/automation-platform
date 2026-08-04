@@ -65,11 +65,25 @@ def create_job_v1(
                 detail="Dependency job does not exist.",
             )
 
+    if (
+        job_data.condition_type is not None
+        or job_data.condition_value is not None
+    ) and job_data.dependency_job_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Conditional execution requires "
+                "a dependency job."
+            ),
+        )
+
     new_job = Job(
         name=job_name,
         status="Pending",
         is_enabled=job_data.is_enabled,
         dependency_job_id=job_data.dependency_job_id,
+        condition_type=job_data.condition_type,
+        condition_value=job_data.condition_value,
     )
 
     try:
@@ -101,6 +115,9 @@ def create_job_v1(
         message="Job created successfully.",
         data=new_job,
     )
+
+
+
 
 
 @router.post(

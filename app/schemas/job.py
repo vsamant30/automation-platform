@@ -6,7 +6,11 @@ from pydantic import BaseModel, ConfigDict
 class JobCreate(BaseModel):
     name: str
     is_enabled: bool = True
+
     dependency_job_id: int | None = None
+
+    condition_type: str | None = None
+    condition_value: str | None = None
 
 
 class JobResponse(BaseModel):
@@ -14,7 +18,11 @@ class JobResponse(BaseModel):
     name: str
     status: str
     is_enabled: bool
+
     dependency_job_id: int | None = None
+
+    condition_type: str | None = None
+    condition_value: str | None = None
 
     result: str | None = None
     error_message: str | None = None
