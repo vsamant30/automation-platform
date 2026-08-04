@@ -106,7 +106,88 @@ def _get_dependency_block_reason(
             f"{latest_dependency_execution.status}."
         )
 
+    condition_block_reason = (
+        _get_condition_block_reason(
+            job=job,
+            dependency_execution=latest_dependency_execution,
+        )
+    )
+
+    if condition_block_reason:
+        return condition_block_reason
+
     return None
+
+
+def _get_condition_block_reason(
+    job: Job,
+    dependency_execution: JobExecution,
+) -> str | None:
+    """
+    Return a reason when the configured condition
+    does not match the dependency execution result.
+    """
+
+    condition_type = (
+        job.condition_type or ""
+    ).strip().lower()
+
+    condition_value = (
+        job.condition_value or ""
+    ).strip()
+
+    if not condition_type:
+        return None
+
+    if not condition_value:
+        return "Conditional execution requires a condition value."
+
+    dependency_result = (
+        dependency_execution.result or ""
+    )
+
+    normalized_result = dependency_result.lower()
+    normalized_value = condition_value.lower()
+
+    condition_matched = False
+
+    if condition_type == "equals":
+        condition_matched = (
+            normalized_result == normalized_value
+        )
+
+    elif condition_type == "contains":
+        condition_matched = (
+            normalized_value in normalized_result
+        )
+
+    elif condition_type == "starts_with":
+        condition_matched = (
+            normalized_result.startswith(
+                normalized_value
+            )
+        )
+
+    elif condition_type == "ends_with":
+        condition_matched = (
+            normalized_result.endswith(
+                normalized_value
+            )
+        )
+
+    else:
+        return (
+            "Unsupported condition type: "
+            f"{job.condition_type}"
+        )
+
+    if condition_matched:
+        return None
+
+    return (
+        f"Condition '{condition_type}' did not match "
+        f"value '{condition_value}'."
+    )
 
 
 def execute_job_with_history(
