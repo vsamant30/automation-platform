@@ -225,6 +225,47 @@ def execution_history(request: Request):
         db.close()
 
 
+@router.get("/api/workflow-data")
+def workflow_data(request: Request):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated",
+            )
+
+        jobs = (
+            db.query(Job)
+            .order_by(Job.id)
+            .all()
+        )
+
+        return {
+            "workflow": [
+                {
+                    "job_id": job.id,
+                    "job_name": job.name,
+                    "depends_on": job.dependency_job_id,
+                    "condition_type": job.condition_type,
+                    "condition_value": job.condition_value,
+                    "enabled": job.is_enabled,
+                    "status": job.status,
+                }
+                for job in jobs
+            ]
+        }
+
+    finally:
+        db.close()
+
+
 @router.get("/history/export.csv")
 def export_execution_history(
     request: Request,
