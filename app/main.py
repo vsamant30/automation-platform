@@ -48,6 +48,13 @@ from app.scheduler.scheduler import (
     resume_scheduled_job,
 )
 
+from fastapi.exceptions import RequestValidationError
+
+from app.core.exceptions import (
+    validation_exception_handler,
+    generic_exception_handler,
+)
+
 from app.services.execution_logger import get_execution_log_path
 
 from app.services.job_execution_service import execute_job_with_history
@@ -69,6 +76,16 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+)
+
+app.add_exception_handler(
+    RequestValidationError,
+    validation_exception_handler,
+)
+
+app.add_exception_handler(
+    Exception,
+    generic_exception_handler,
 )
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
