@@ -59,6 +59,17 @@ class Job(Base):
         nullable=True,
     )
 
+    # Optional condition applied to the dependency result.
+    condition_type = Column(
+        String,
+        nullable=True,
+    )
+
+    condition_value = Column(
+        Text,
+        nullable=True,
+    )
+
     is_enabled = Column(
         Boolean,
         default=True,
