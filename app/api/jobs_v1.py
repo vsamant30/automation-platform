@@ -33,6 +33,37 @@ def get_jobs_v1(
     )
 
 
+@router.get(
+    "/workflow",
+    response_model=ApiResponse[list[dict]],
+)
+def get_workflow_v1(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    jobs = db.query(Job).all()
+
+    workflow = []
+
+    for job in jobs:
+        workflow.append(
+            {
+                "job_id": job.id,
+                "job_name": job.name,
+                "depends_on": job.dependency_job_id,
+                "condition_type": job.condition_type,
+                "condition_value": job.condition_value,
+                "enabled": job.is_enabled,
+            }
+        )
+
+    return ApiResponse(
+        success=True,
+        message="Workflow retrieved successfully.",
+        data=workflow,
+    )
+
+
 @router.post(
     "/",
     response_model=ApiResponse[JobResponse],
