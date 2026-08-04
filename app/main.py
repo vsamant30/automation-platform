@@ -17,6 +17,7 @@ from fastapi.templating import Jinja2Templates
 from app.api.jobs import router as jobs_router
 from app.api.jobs_v1 import router as jobs_v1_router
 from app.api.auth import router as auth_router
+from app.api.auth_v1 import router as auth_v1_router
 from app.api.pages import router as pages_router
 
 from app.core.auth import (
@@ -863,7 +864,7 @@ app.include_router(
 
 # Versioned REST API for v2.0 clients.
 app.include_router(
-    auth_router,
+    auth_v1_router,
     prefix="/api/v1/auth",
     tags=["API v1 - Authentication"],
 )
