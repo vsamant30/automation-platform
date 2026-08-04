@@ -1,7 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.db.database import SessionLocal
 from app.db.models import (
     Job,
     JobExecution,
@@ -26,6 +28,37 @@ def _get_dependent_jobs(
         )
         .all()
     )
+
+
+def _execute_dependent_job(
+    job_id: int,
+    visited_job_ids: set[int],
+) -> JobExecution | None:
+    """
+    Execute one dependent job using a separate
+    database session.
+    """
+
+    db = SessionLocal()
+
+    try:
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if job is None or not job.is_enabled:
+            return None
+
+        return execute_job_with_history(
+            db=db,
+            job=job,
+            visited_job_ids=visited_job_ids,
+        )
+
+    finally:
+        db.close()
 
 
 def _get_dependency_block_reason(
@@ -199,19 +232,37 @@ def execute_job_with_history(
             job=job,
         )
 
-        for dependent_job in dependent_jobs:
-            if not dependent_job.is_enabled:
-                continue
+        enabled_dependent_job_ids = [
+            dependent_job.id
+            for dependent_job in dependent_jobs
+            if dependent_job.is_enabled
+        ]
 
-            try:
-                execute_job_with_history(
-                    db=db,
-                    job=dependent_job,
-                    visited_job_ids=current_visited_job_ids,
-                )
+        if enabled_dependent_job_ids:
+            max_workers = min(
+                len(enabled_dependent_job_ids),
+                4,
+            )
 
-            except RuntimeError:
-                continue
+            with ThreadPoolExecutor(
+                max_workers=max_workers,
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        _execute_dependent_job,
+                        dependent_job_id,
+                        current_visited_job_ids,
+                    )
+                    for dependent_job_id
+                    in enabled_dependent_job_ids
+                ]
+
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+
+                    except RuntimeError:
+                        continue
 
     except Exception as error:
         completed_at = datetime.utcnow()
