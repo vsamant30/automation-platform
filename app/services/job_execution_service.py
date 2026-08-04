@@ -1,8 +1,31 @@
 from datetime import datetime
 
-from app.db.models import Job, JobExecution
+from sqlalchemy.orm import Session
+
+from app.db.models import (
+    Job,
+    JobExecution,
+)
 from app.services.execution_logger import write_execution_log
 from app.services.job_runner import execute_job
+
+
+def _get_dependent_jobs(
+    db: Session,
+    job: Job,
+) -> list[Job]:
+    """
+    Return all jobs that depend on the
+    supplied job.
+    """
+
+    return (
+        db.query(Job)
+        .filter(
+            Job.dependency_job_id == job.id
+        )
+        .all()
+    )
 
 
 def _get_dependency_block_reason(
@@ -56,6 +79,7 @@ def _get_dependency_block_reason(
 def execute_job_with_history(
     db,
     job: Job,
+    visited_job_ids: set[int] | None = None,
 ) -> JobExecution:
     """
     Execute a job and automatically create or update
@@ -66,6 +90,20 @@ def execute_job_with_history(
     """
 
     execution = None
+
+    if visited_job_ids is None:
+        visited_job_ids = set()
+
+    if job.id in visited_job_ids:
+        raise RuntimeError(
+            f"Circular job dependency detected at "
+            f"job '{job.name}' (ID {job.id})."
+        )
+
+    current_visited_job_ids = {
+        *visited_job_ids,
+        job.id,
+    }
 
     try:
         started_at = datetime.utcnow()
@@ -155,6 +193,25 @@ def execute_job_with_history(
             job,
             execution,
         )
+
+        dependent_jobs = _get_dependent_jobs(
+            db=db,
+            job=job,
+        )
+
+        for dependent_job in dependent_jobs:
+            if not dependent_job.is_enabled:
+                continue
+
+            try:
+                execute_job_with_history(
+                    db=db,
+                    job=dependent_job,
+                    visited_job_ids=current_visited_job_ids,
+                )
+
+            except RuntimeError:
+                continue
 
     except Exception as error:
         completed_at = datetime.utcnow()
