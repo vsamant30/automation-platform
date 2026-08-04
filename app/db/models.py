@@ -5,6 +5,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Float,
+    ForeignKey,
     Integer,
     String,
     Text,
@@ -50,8 +51,14 @@ class Job(Base):
         String,
         nullable=True,
     )
-    
-    
+
+    # Optional dependency on another job.
+    dependency_job_id = Column(
+        Integer,
+        ForeignKey("jobs.id"),
+        nullable=True,
+    )
+
     is_enabled = Column(
         Boolean,
         default=True,
