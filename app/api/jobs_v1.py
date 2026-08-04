@@ -50,6 +50,21 @@ def create_job_v1(
         job_name=job_data.name,
     )
 
+    if job_data.dependency_job_id is not None:
+        dependency_job = (
+            db.query(Job)
+            .filter(
+                Job.id == job_data.dependency_job_id
+            )
+            .first()
+        )
+
+        if dependency_job is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Dependency job does not exist.",
+            )
+
     new_job = Job(
         name=job_name,
         status="Pending",
