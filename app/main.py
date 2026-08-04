@@ -68,11 +68,37 @@ from uuid import uuid4
 
 app = FastAPI(
     title="Automation Platform API",
-    description=(
-        "Automation job management, scheduling, "
-        "execution, and audit platform."
-    ),
-    version="2.0.0-dev",
+    description="""
+Enterprise Automation Platform
+
+## Features
+
+- JWT Authentication
+- RBAC Authorization
+- Job Scheduling
+- Manual Job Execution
+- Retry Failed Jobs
+- Audit Logs
+- Execution History
+- REST API Versioning
+
+## Authentication
+
+Use:
+
+Authorization: Bearer <JWT Token>
+
+for all protected endpoints.
+
+## API Versions
+
+- Legacy APIs
+- Versioned APIs (/api/v1)
+""",
+    version="2.0.0",
+    contact={
+        "name": "Vinayak Samant",
+    },
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
