@@ -9,7 +9,7 @@ from app.schemas.api_response import ApiResponse
 from app.schemas.job import JobCreate, JobResponse
 from app.services.audit_service import log_audit_event
 from app.services.job_name_validator import validate_job_name
-from app.services.job_runner import execute_job
+from app.services.job_execution_service import execute_job_with_history
 
 
 
@@ -86,6 +86,7 @@ def create_job_v1(
         data=new_job,
     )
 
+
 @router.post(
     "/{job_id}/run",
     response_model=ApiResponse[dict],
@@ -115,49 +116,33 @@ def run_job_v1(
             detail="Job is disabled.",
         )
 
-    old_status = job.status
+    execution = execute_job_with_history(
+        db=db,
+        job=job,
+    )
 
-    try:
-        job.status = "Running"
-
-        log_audit_event(
-            db=db,
-            user_id=current_user.id,
-            username=current_user.username,
-            action="RUN_JOB",
-            entity_type="Job",
-            entity_id=job.id,
-            old_value=old_status,
-            new_value="Running through API v1",
-        )
-
-        db.commit()
-
-        result = execute_job(job.name)
-
-        job.status = "Completed"
-        job.result = result
-
-        db.commit()
-
-        return ApiResponse(
-            success=True,
-            message="Job executed successfully.",
-            data={
-                "job_id": job.id,
-                "status": job.status,
-                "result": result,
-            },
-        )
-
-    except Exception as ex:
-
-        db.rollback()
-
+    if execution is None:
         raise HTTPException(
             status_code=500,
-            detail=str(ex),
+            detail="Job execution could not be created.",
         )
+
+    return ApiResponse(
+        success=execution.status == "Completed",
+        message=(
+            "Job executed successfully."
+            if execution.status == "Completed"
+            else "Job execution failed."
+        ),
+        data={
+            "job_id": job.id,
+            "execution_id": execution.id,
+            "status": execution.status,
+            "result": execution.result,
+            "error_message": execution.error_message,
+        },
+    )
+
 
 @router.put(
     "/{job_id}/toggle",
