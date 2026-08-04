@@ -54,6 +54,7 @@ def create_job_v1(
         name=job_name,
         status="Pending",
         is_enabled=job_data.is_enabled,
+        dependency_job_id=job_data.dependency_job_id,
     )
 
     try:
