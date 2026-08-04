@@ -35,6 +35,8 @@ from app.db.models import Job, JobExecution, User
 
 from app.api.users import router as users_router
 
+from app.api.users_v1 import router as users_v1_router
+
 from fastapi import Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -876,7 +878,7 @@ app.include_router(
 )
 
 app.include_router(
-    users_router,
+    users_v1_router,
     prefix="/api/v1/users",
     tags=["API v1 - Users"],
 )
