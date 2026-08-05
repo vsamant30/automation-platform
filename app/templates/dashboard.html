@@ -10,122 +10,284 @@ Dashboard
 
 <div class="page-container">
 
-    <div class="header">
+<header class="dashboard-topbar">
 
-        <div>
-            <h1>Automation Platform Dashboard</h1>
+    <div class="dashboard-topbar-left">
 
-            <p class="welcome">
-                Welcome,
-                <strong>{{ current_user.username }}</strong>
-                ({{ current_user.role|capitalize }})
+        <button
+            type="button"
+            class="topbar-menu-button"
+            aria-label="Open navigation menu"
+            title="Navigation"
+        >
+            ☰
+        </button>
+
+        <div class="dashboard-heading">
+
+            <h1>Dashboard</h1>
+
+            <p>
+                Overview of all automation jobs and their current status
             </p>
+
         </div>
-
-
 
     </div>
 
+    <div class="dashboard-topbar-right">
+
+        <label
+            class="topbar-search"
+            for="topbarSearch"
+        >
+            <span class="topbar-search-icon">⌕</span>
+
+            <input
+                type="search"
+                id="topbarSearch"
+                placeholder="Search jobs, workflows..."
+                autocomplete="off"
+            >
+        </label>
+
+        <button
+            type="button"
+            class="topbar-icon-button"
+            aria-label="Notifications"
+            title="Notifications"
+        >
+            🔔
+        </button>
+
+        <button
+            type="button"
+            class="topbar-icon-button"
+            aria-label="Settings"
+            title="Settings"
+        >
+            ⚙
+        </button>
+
+        <div class="topbar-profile">
+
+            <div class="topbar-avatar">
+                {{ current_user.username[0]|upper }}
+            </div>
+
+            <div class="topbar-profile-details">
+
+                <strong>
+                    {{ current_user.username }}
+                </strong>
+
+                <span>
+                    {{ current_user.role|capitalize }}
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
 
 
 {% if current_user.role|lower == "admin" %}
 
-<div class="create-job-card">
+<section class="create-job-card">
 
-        <h2>Create New Job</h2>
+    <div class="create-job-header">
 
-<form
-    action="/dashboard/jobs/create"
-    method="post"
-    class="create-job-form"
-    id="createJobForm">
+        <div class="create-job-heading">
 
-<input
-    type="text"
-    name="job_name"
-    placeholder="Enter Job Name"
-    required
->
+            <div class="create-job-icon">
+                ＋
+            </div>
 
-<small
-    id="job-name-message"
-    style="color:red;font-weight:bold;"
-></small>
+            <div>
+                <h2>Create New Job</h2>
 
-<select
-    name="category"
-    class="job-category-select"
->
+                <p>
+                    Create and configure a new automation job.
+                </p>
+            </div>
 
-    <option value="General">General</option>
-    <option value="Monitoring">Monitoring</option>
-    <option value="Database">Database</option>
-    <option value="Maintenance">Maintenance</option>
-    <option value="Active Directory">Active Directory</option>
-    <option value="Microsoft 365">Microsoft 365</option>
-    <option value="Azure">Azure</option>
-    <option value="SAP">SAP</option>
-
-</select>
-
-<button
-    type="submit"
-    class="btn btn-primary"
->
-    Create Job
-</button>
-
-        </form>
+        </div>
 
     </div>
+
+    <form
+        action="/dashboard/jobs/create"
+        method="post"
+        class="create-job-form"
+        id="createJobForm"
+    >
+
+        <div class="create-job-field create-job-name-field">
+
+            <label for="dashboardJobName">
+                Job Name
+            </label>
+
+            <input
+                type="text"
+                id="dashboardJobName"
+                name="job_name"
+                placeholder="Enter a unique job name"
+                autocomplete="off"
+                required
+            >
+
+            <small
+                id="job-name-message"
+                class="job-name-message"
+            ></small>
+
+        </div>
+
+        <div class="create-job-field create-job-category-field">
+
+            <label for="dashboardJobCategory">
+                Category
+            </label>
+
+            <select
+                id="dashboardJobCategory"
+                name="category"
+                class="job-category-select"
+            >
+                <option value="General">General</option>
+                <option value="Monitoring">Monitoring</option>
+                <option value="Database">Database</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Active Directory">Active Directory</option>
+                <option value="Microsoft 365">Microsoft 365</option>
+                <option value="Azure">Azure</option>
+                <option value="AWS">AWS</option>
+                <option value="SAP">SAP</option>
+                <option value="ServiceNow">ServiceNow</option>
+            </select>
+
+        </div>
+
+        <div class="create-job-action">
+
+            <button
+                type="submit"
+                class="btn btn-primary create-job-button"
+            >
+                <span>＋</span>
+                Create Job
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
 
 {% endif %}
 
-    <div class="statistics">
+<div class="statistics">
 
-        <div class="stat-card total-card" id="totalCard">
+    <div
+        class="stat-card total-card"
+        id="totalCard"
+    >
+        <div class="stat-icon">
+            🗂
+        </div>
 
+        <div class="stat-content">
             <h3>Total Jobs</h3>
 
-           <h1 id="totalJobsCount">{{ total_jobs }}</h1>
+            <h1 id="totalJobsCount">
+                {{ total_jobs }}
+            </h1>
 
+            <p>All automation jobs created</p>
+        </div>
+    </div>
 
+    <div
+        class="stat-card completed-card"
+        id="completedCard"
+    >
+        <div class="stat-icon">
+            ✓
         </div>
 
-        <div class="stat-card completed-card" id="completedCard">
-
+        <div class="stat-content">
             <h3>Completed</h3>
 
-<h1 id="completedJobsCount">{{ completed_jobs }}</h1>
+            <h1 id="completedJobsCount">
+                {{ completed_jobs }}
+            </h1>
 
+            <p>Successfully completed</p>
+        </div>
+    </div>
+
+    <div
+        class="stat-card running-card"
+        id="runningCard"
+    >
+        <div class="stat-icon">
+            ▶
         </div>
 
-        <div class="stat-card running-card" id="runningCard">
-           
+        <div class="stat-content">
             <h3>Running</h3>
 
-<h1 id="runningJobsCount">{{ running_jobs }}</h1>
+            <h1 id="runningJobsCount">
+                {{ running_jobs }}
+            </h1>
 
+            <p>Currently in progress</p>
+        </div>
+    </div>
+
+    <div
+        class="stat-card scheduled-card"
+        id="scheduledCard"
+    >
+        <div class="stat-icon">
+            📅
         </div>
 
-        <div class="stat-card scheduled-card" id="scheduledCard">
-
-
+        <div class="stat-content">
             <h3>Scheduled</h3>
 
-<h1 id="scheduledJobsCount">{{ scheduled_jobs }}</h1>
+            <h1 id="scheduledJobsCount">
+                {{ scheduled_jobs }}
+            </h1>
 
+            <p>Upcoming executions</p>
+        </div>
+    </div>
+
+    <div
+        class="stat-card failed-card"
+        id="failedCard"
+    >
+        <div class="stat-icon">
+            ✕
         </div>
 
-
-        <div class="stat-card failed-card" id="failedCard">
+        <div class="stat-content">
             <h3>Failed</h3>
 
-<h1 id="failedJobsCount">{{ failed_jobs }}</h1>
-            
-        </div>
+            <h1 id="failedJobsCount">
+                {{ failed_jobs }}
+            </h1>
 
+            <p>Execution failures</p>
+        </div>
     </div>
+
+</div>
 
 <div class="dashboard-insights-row">
 
