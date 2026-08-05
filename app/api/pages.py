@@ -4,6 +4,8 @@ from app.services.job_name_validator import validate_job_name
 import csv
 import io
 import json
+from datetime import datetime, timedelta
+
 
 from app.services.audit_service import log_audit_event
 
@@ -34,7 +36,6 @@ from app.db.models import (
 )
 
 from app.scheduler.scheduler import sync_job_schedule
-from fastapi import HTTPException
 
 from app.services.job_execution_service import (
     execute_job_with_history,
@@ -64,6 +65,120 @@ async def login_page(request: Request):
     )
 
 
+def _get_dashboard_statistics(db):
+    """
+    Return the current dashboard job counts and
+    operational execution metrics.
+    """
+
+    twenty_four_hours_ago = (
+        datetime.utcnow() - timedelta(hours=24)
+    )
+
+    recent_executions = (
+        db.query(JobExecution)
+        .filter(
+            JobExecution.created_at
+            >= twenty_four_hours_ago
+        )
+        .all()
+    )
+
+    completed_executions_24h = sum(
+        1
+        for execution in recent_executions
+        if execution.status == "Completed"
+    )
+
+    failed_executions_24h = sum(
+        1
+        for execution in recent_executions
+        if execution.status == "Failed"
+    )
+
+    finished_executions_24h = (
+        completed_executions_24h
+        + failed_executions_24h
+    )
+
+    if finished_executions_24h > 0:
+        success_rate_24h = round(
+            (
+                completed_executions_24h
+                / finished_executions_24h
+            )
+            * 100,
+            1,
+        )
+    else:
+        success_rate_24h = 0.0
+
+    recorded_durations = [
+        execution.duration
+        for execution in recent_executions
+        if execution.duration is not None
+    ]
+
+    if recorded_durations:
+        average_duration_24h = round(
+            sum(recorded_durations)
+            / len(recorded_durations),
+            4,
+        )
+    else:
+        average_duration_24h = 0.0
+
+    return {
+        "total_jobs": db.query(Job).count(),
+
+        "completed_jobs": (
+            db.query(Job)
+            .filter(Job.status == "Completed")
+            .count()
+        ),
+
+        "running_jobs": (
+            db.query(Job)
+            .filter(Job.status == "Running")
+            .count()
+        ),
+
+        "scheduled_jobs": (
+            db.query(Job)
+            .filter(Job.schedule_enabled == True)
+            .count()
+        ),
+
+        "failed_jobs": (
+            db.query(Job)
+            .filter(Job.status == "Failed")
+            .count()
+        ),
+
+        "executions_24h": len(recent_executions),
+
+        "success_rate_24h": success_rate_24h,
+
+        "average_duration_24h": (
+            average_duration_24h
+        ),
+
+        "pending_jobs": (
+            db.query(Job)
+            .filter(Job.status == "Pending")
+            .count()
+        ),
+
+        "paused_schedules": (
+            db.query(Job)
+            .filter(
+                Job.schedule_enabled == True,
+                Job.schedule_paused == True,
+            )
+            .count()
+        ),
+    }
+
 @router.get("/dashboard")
 def dashboard(request: Request):
     db = SessionLocal()
@@ -82,31 +197,7 @@ def dashboard(request: Request):
 
         jobs = db.query(Job).all()
 
-        total_jobs = db.query(Job).count()
-
-        completed_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Completed")
-            .count()
-        )
-
-        running_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Running")
-            .count()
-        )
-
-        failed_jobs = (
-            db.query(Job)
-            .filter(Job.status == "Failed")
-            .count()
-        )
-
-        scheduled_jobs = (
-            db.query(Job)
-            .filter(Job.schedule_enabled == True)
-            .count()
-        )
+        statistics = _get_dashboard_statistics(db)
 
         return templates.TemplateResponse(
             request=request,
@@ -115,16 +206,14 @@ def dashboard(request: Request):
                 "request": request,
                 "current_user": current_user,
                 "jobs": jobs,
-                "total_jobs": total_jobs,
-                "completed_jobs": completed_jobs,
-                "running_jobs": running_jobs,
-                "scheduled_jobs": scheduled_jobs,
-                "failed_jobs": failed_jobs,
+                **statistics,
             },
         )
 
     finally:
         db.close()
+
+
 
 
 @router.get("/api/dashboard-data")
@@ -145,30 +234,10 @@ def dashboard_data(request: Request):
 
         jobs = db.query(Job).all()
 
+        statistics = _get_dashboard_statistics(db)
+
         return {
-            "statistics": {
-                "total_jobs": db.query(Job).count(),
-                "completed_jobs": (
-                    db.query(Job)
-                    .filter(Job.status == "Completed")
-                    .count()
-                ),
-                "running_jobs": (
-                    db.query(Job)
-                    .filter(Job.status == "Running")
-                    .count()
-                ),
-                "scheduled_jobs": (
-                    db.query(Job)
-                    .filter(Job.schedule_enabled == True)
-                    .count()
-                ),
-                "failed_jobs": (
-                    db.query(Job)
-                    .filter(Job.status == "Failed")
-                    .count()
-                ),
-            },
+            "statistics": statistics,
             "jobs": [
                 {
                     "id": job.id,
