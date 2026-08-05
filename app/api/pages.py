@@ -17,6 +17,7 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import (
+    FileResponse,
     HTMLResponse,
     RedirectResponse,
     StreamingResponse,
@@ -40,6 +41,10 @@ from app.scheduler.scheduler import sync_job_schedule
 from app.services.job_execution_service import (
     execute_job_with_history,
 )
+from app.services.execution_logger import (
+    get_execution_log_path,
+)
+
 
 
 
@@ -578,6 +583,56 @@ def export_audit_logs(request: Request):
     finally:
         db.close()
 
+
+@router.get("/executions/{execution_id}/log/download")
+def download_execution_log(
+    execution_id: int,
+    request: Request,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        execution = (
+            db.query(JobExecution)
+            .filter(JobExecution.id == execution_id)
+            .first()
+        )
+
+        if not execution:
+            raise HTTPException(
+                status_code=404,
+                detail="Execution not found.",
+            )
+
+        log_path = get_execution_log_path(
+            execution.id
+        )
+
+        if not log_path.is_file():
+            raise HTTPException(
+                status_code=404,
+                detail="Execution log file was not found.",
+            )
+
+        return FileResponse(
+            path=log_path,
+            media_type="text/plain",
+            filename=log_path.name,
+        )
+
+    finally:
+        db.close()
 
 
 @router.get("/executions/{execution_id}/details")
