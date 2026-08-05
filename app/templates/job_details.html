@@ -90,6 +90,10 @@
             color: #222;
         }
 
+        .btn-danger {
+            background: #dc3545;
+        }
+
         /*
          * Navigation
          */
@@ -498,35 +502,49 @@
 
             </div>
 
-            <div class="action-buttons">
+<div class="action-buttons">
 
-                <form
-                    action="/dashboard/jobs/{{ job.id }}/run"
-                    method="post"
-                >
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                    >
-                        ▶ Run Job
-                    </button>
-                </form>
+    <form
+        action="/dashboard/jobs/{{ job.id }}/run"
+        method="post"
+    >
+        <button
+            type="submit"
+            class="btn btn-success"
+        >
+            ▶ Run Job
+        </button>
+    </form>
 
-                <a
-                    href="/jobs/{{ job.id }}/edit"
-                    class="btn btn-warning"
-                >
-                    ✏ Edit Job
-                </a>
+    {% if job.status == "Failed" %}
+    <form
+        action="/jobs/{{ job.id }}/retry"
+        method="post"
+    >
+        <button
+            type="submit"
+            class="btn btn-danger"
+        >
+            ↻ Retry Failed Job
+        </button>
+    </form>
+    {% endif %}
 
-                <a
-                    href="/jobs/{{ job.id }}/schedule"
-                    class="btn btn-info"
-                >
-                    📅 Schedule Job
-                </a>
+    <a
+        href="/jobs/{{ job.id }}/edit"
+        class="btn btn-warning"
+    >
+        ✏ Edit Job
+    </a>
 
-            </div>
+    <a
+        href="/jobs/{{ job.id }}/schedule"
+        class="btn btn-info"
+    >
+        📅 Schedule Job
+    </a>
+
+</div>
 
         </div>
 

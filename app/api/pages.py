@@ -36,6 +36,11 @@ from app.db.models import (
 from app.scheduler.scheduler import sync_job_schedule
 from fastapi import HTTPException
 
+from app.services.job_execution_service import (
+    execute_job_with_history,
+)
+
+
 
 router = APIRouter()
 
@@ -1024,6 +1029,73 @@ def save_job_schedule(
     except Exception:
         db.rollback()
         raise
+
+    finally:
+        db.close()
+
+@router.post("/jobs/{job_id}/retry")
+def retry_job(
+    request: Request,
+    job_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=404,
+                detail="Job not found",
+            )
+
+        if job.status != "Failed":
+            raise HTTPException(
+                status_code=400,
+                detail="Only failed jobs can be retried.",
+            )
+
+        previous_status = job.status
+
+        execution = execute_job_with_history(
+            db=db,
+            job=job,
+        )
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="RETRY_JOB",
+            entity_type="Job",
+            entity_id=job.id,
+            old_value=previous_status,
+            new_value=execution.status,
+        )
+
+        db.commit()
+
+        return RedirectResponse(
+            url=f"/jobs/{job.id}/details",
+            status_code=303,
+        )
 
     finally:
         db.close()
