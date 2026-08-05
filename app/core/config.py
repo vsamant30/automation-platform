@@ -34,5 +34,76 @@ class Settings:
         "sqlite:///automation_platform.db",
     )
 
+    EMAIL_NOTIFICATIONS_ENABLED = (
+        os.getenv(
+            "EMAIL_NOTIFICATIONS_ENABLED",
+            "false",
+        ).strip().lower()
+        == "true"
+    )
+
+    SMTP_HOST = os.getenv(
+        "SMTP_HOST",
+        "",
+    )
+
+    SMTP_PORT = int(
+        os.getenv(
+            "SMTP_PORT",
+            "587",
+        )
+    )
+
+    SMTP_USERNAME = os.getenv(
+        "SMTP_USERNAME",
+        "",
+    )
+
+    SMTP_PASSWORD = os.getenv(
+        "SMTP_PASSWORD",
+        "",
+    )
+
+    SMTP_USE_TLS = (
+        os.getenv(
+            "SMTP_USE_TLS",
+            "true",
+        ).strip().lower()
+        == "true"
+    )
+
+    SMTP_USE_SSL = (
+        os.getenv(
+            "SMTP_USE_SSL",
+            "false",
+        ).strip().lower()
+        == "true"
+    )
+
+    EMAIL_FROM_ADDRESS = os.getenv(
+        "EMAIL_FROM_ADDRESS",
+        "",
+    )
+
+    EMAIL_TO_ADDRESSES = os.getenv(
+        "EMAIL_TO_ADDRESSES",
+        "",
+    )
+
+    EMAIL_NOTIFY_ON_COMPLETED = (
+        os.getenv(
+            "EMAIL_NOTIFY_ON_COMPLETED",
+            "true",
+        ).strip().lower()
+        == "true"
+    )
+
+    EMAIL_NOTIFY_ON_FAILED = (
+        os.getenv(
+            "EMAIL_NOTIFY_ON_FAILED",
+            "true",
+        ).strip().lower()
+        == "true"
+    )
 
 settings = Settings()

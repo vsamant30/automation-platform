@@ -9,6 +9,11 @@ from app.db.models import (
     JobExecution,
 )
 from app.services.execution_logger import write_execution_log
+
+from app.services.email_service import (
+    send_job_execution_notification,
+)
+
 from app.services.job_runner import execute_job
 
 
@@ -308,6 +313,11 @@ def execute_job_with_history(
             execution,
         )
 
+        send_job_execution_notification(
+            job=job,
+            execution=execution,
+        )
+
         dependent_jobs = _get_dependent_jobs(
             db=db,
             job=job,
@@ -373,6 +383,11 @@ def execute_job_with_history(
             write_execution_log(
                 job,
                 execution,
+            )
+
+            send_job_execution_notification(
+                job=job,
+                execution=execution,
             )
 
     return execution
