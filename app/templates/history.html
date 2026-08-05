@@ -1,632 +1,640 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Execution History | Automation Platform</title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 40px;
-            background: #f4f6f8;
-            color: #333;
-        }
-
-        .page-container {
-            max-width: 1500px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            margin-top: 0;
-            margin-bottom: 24px;
-            color: #2d2d2d;
-        }
-
-        /*
-         * Reusable buttons
-         */
-        .btn {
-            display: inline-block;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition:
-                opacity 0.2s ease,
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-.btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.btn:disabled:hover {
-    opacity: 0.45;
-    transform: none;
-    box-shadow: none;
-}
-
-        .btn-primary {
-            background: #0d6efd;
-        }
-
-        .btn-success {
-            background: #198754;
-        }
-
-        .btn-small {
-            padding: 7px 11px;
-            font-size: 12px;
-        }
-
-        /*
-         * Navigation
-         */
-.navigation {
-
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 25px;
-
-}
-
-.history-search-input {
-
-    width: 320px;
-    padding: 10px 14px;
-
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-
-    font-size: 14px;
-
-    outline: none;
-
-    transition: border-color .2s ease,
-                box-shadow .2s ease;
-
-}
-
-.history-filters {
-
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-}
-
-.history-status-filter {
-
-    width: 150px;
-    padding: 10px 12px;
-
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-
-    background: white;
-
-    font-size: 14px;
-
-    cursor: pointer;
-
-    outline: none;
-
-}
-
-.history-status-filter:focus {
-
-    border-color: #0d6efd;
-
-    box-shadow: 0 0 0 3px rgba(13,110,253,.15);
-
-}
-
-.history-search-input:focus {
-
-    border-color: #0d6efd;
-
-    box-shadow: 0 0 0 3px rgba(13,110,253,.15);
-
-}
-
-        /*
-         * History card and table
-         */
-.history-card {
-    background: white;
-    border: 1px solid #e1e5e9;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.05);
-}
-
-
-.table-container {
-    overflow-x: auto;
-    overflow-y: visible;
-}
-
-
-        table {
-            width: 100%;
-            min-width: 1200px;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        th,
-        td {
-            padding: 13px 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-            vertical-align: top;
-        }
-
-th {
-    background: #087cc1;
-    color: white;
-    font-size: 14px;
-
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-
-        tbody tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-
-        tbody tr:hover {
-            background: #edf5ff;
-        }
-
-        tbody tr {
-    transition: background-color 0.15s ease;
-}
-
-tbody tr:hover {
-    background: #e6f2ff;
-}
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /*
-         * Execution ID and actions
-         */
-        .execution-id-cell {
-            min-width: 110px;
-        }
-
-        .execution-link {
-            display: inline-block;
-            margin-bottom: 10px;
-            color: #0d6efd;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .execution-link:hover {
-            text-decoration: underline;
-        }
-
-        /*
-         * Status badges
-         */
-        .status-badge {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .status-completed {
-            color: #146c43;
-            background: #d1e7dd;
-        }
-
-        .status-running {
-            color: #7a5800;
-            background: #fff3cd;
-        }
-
-        .status-failed {
-            color: #842029;
-            background: #f8d7da;
-        }
-
-        .status-pending {
-            color: #495057;
-            background: #e9ecef;
-        }
-
-        /*
-         * Cell formatting
-         */
-        .date-cell {
-            min-width: 175px;
-            white-space: normal;
-        }
-
-        .duration-cell {
-            min-width: 100px;
-            white-space: nowrap;
-        }
-
-        .result-cell,
-        .error-cell {
-            max-width: 320px;
-            min-width: 220px;
-            white-space: pre-wrap;
-            word-break: break-word;
-            line-height: 1.45;
-        }
-
-        .empty-state {
-            padding: 40px 25px;
-            text-align: center;
-            color: #666;
-        }
-
-        .empty-state-icon {
-            margin-bottom: 10px;
-            font-size: 34px;
-        }
-
-        .empty-state p {
-            margin: 0;
-        }
-
-        .history-pagination {
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-
-    padding: 18px;
-
-    border-top: 1px solid #e5e5e5;
-
-    background: #fafafa;
-
-}
-
-.history-pagination span {
-
-    font-weight: bold;
-    color: #444;
-
-}
-
-        /*
-         * Responsive layout
-         */
-        @media screen and (max-width: 800px) {
-            body {
-                padding: 24px;
-            }
-        }
-
-        @media screen and (max-width: 550px) {
-            body {
-                padding: 16px;
-            }
-
-            h1 {
-                font-size: 27px;
-            }
-
-            .navigation {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .navigation .btn {
-                width: 100%;
-                text-align: center;
-            }
-        }
-    </style>
-
-</head>
-
-<body>
-
-    <div class="page-container">
-
-        <h1>Execution History</h1>
-
-<div class="navigation">
-
-    <a
-        href="/dashboard"
-        class="btn btn-primary"
-    >
-        ← Dashboard
-    </a>
-
-    <div class="history-filters">
+{% extends "base.html" %}
+
+{% block title %}
+Execution History
+{% endblock %}
+
+{% block content %}
+
+<div class="history-page">
+
+    <div class="history-page-header">
+
+        <div>
+            <h1>Execution History</h1>
+
+            <p>
+                Review, search, filter, and export automation execution records.
+            </p>
+        </div>
+
+        <a
+            href="/history/export.csv"
+            id="historyExportCsv"
+            class="btn btn-success"
+        >
+            ⬇ Export CSV
+        </a>
+
+    </div>
+
+    <div class="history-summary">
+
+        <div class="history-summary-card">
+            <span>Total Executions</span>
+
+            <strong>
+                {{ executions|length }}
+            </strong>
+        </div>
+
+        <div class="history-summary-card history-summary-completed">
+            <span>Completed</span>
+
+            <strong>
+                {{
+                    executions
+                    |selectattr("status", "equalto", "Completed")
+                    |list
+                    |length
+                }}
+            </strong>
+        </div>
+
+        <div class="history-summary-card history-summary-running">
+            <span>Running</span>
+
+            <strong>
+                {{
+                    executions
+                    |selectattr("status", "equalto", "Running")
+                    |list
+                    |length
+                }}
+            </strong>
+        </div>
+
+        <div class="history-summary-card history-summary-failed">
+            <span>Failed</span>
+
+            <strong>
+                {{
+                    executions
+                    |selectattr("status", "equalto", "Failed")
+                    |list
+                    |length
+                }}
+            </strong>
+        </div>
+
+    </div>
+
+    <div class="history-toolbar">
+
+        <input
+            type="search"
+            id="historySearch"
+            class="history-search-input"
+            placeholder="Search by job name..."
+            autocomplete="off"
+        >
 
         <select
             id="historyStatusFilter"
             class="history-status-filter"
         >
             <option value="">All Statuses</option>
-            <option value="completed">Completed</option>
-            <option value="running">Running</option>
-            <option value="failed">Failed</option>
-            <option value="pending">Pending</option>
+            <option value="Completed">Completed</option>
+            <option value="Running">Running</option>
+            <option value="Failed">Failed</option>
+            <option value="Skipped">Skipped</option>
+            <option value="Pending">Pending</option>
         </select>
-
-        <input
-            type="text"
-            id="historySearch"
-            class="history-search-input"
-            placeholder="Search by job name..."
-        >
 
         <button
             type="button"
             id="historyClearFilters"
-            class="btn btn-primary"
+            class="btn btn-secondary btn-small"
         >
-    Clear Filters
-</button>
-
-<a
-    href="/history/export.csv"
-    id="historyExportCsv"
-    class="btn btn-success"
->
-    Export CSV
-</a>
+            Clear Filters
+        </button>
 
     </div>
 
-</div>
+    <div class="history-card">
 
-<div class="history-card">
+        <div class="history-table-container">
 
-            {% if executions %}
+            <table class="history-table">
 
-<div class="table-container">
+                <thead>
+                    <tr>
+                        <th
+                            data-column="0"
+                            data-label="Execution ID"
+                        >
+                            Execution ID
+                        </th>
 
-                    <table>
+                        <th
+                            data-column="1"
+                            data-label="Job Name"
+                        >
+                            Job Name
+                        </th>
 
-<thead>
-    <tr>
-        <th data-column="0" data-label="ID">ID</th>
-        <th data-column="1" data-label="Job">Job</th>
-        <th data-column="2" data-label="Status">Status</th>
-        <th data-column="3" data-label="Started">Started</th>
-        <th data-column="4" data-label="Completed">Completed</th>
-        <th data-column="5" data-label="Duration">Duration</th>
-        <th data-column="6" data-label="Result">Result</th>
-        <th data-column="7" data-label="Error">Error</th>
-    </tr>
-</thead>
+                        <th
+                            data-column="2"
+                            data-label="Status"
+                        >
+                            Status
+                        </th>
 
-                        <tbody>
+                        <th
+                            data-column="3"
+                            data-label="Started"
+                        >
+                            Started
+                        </th>
 
-                            {% for execution in executions %}
+                        <th
+                            data-column="4"
+                            data-label="Completed"
+                        >
+                            Completed
+                        </th>
 
-                            <tr>
+                        <th
+                            data-column="5"
+                            data-label="Duration"
+                        >
+                            Duration
+                        </th>
 
-                                <td class="execution-id-cell">
+                        <th
+                            data-column="6"
+                            data-label="Result"
+                        >
+                            Result
+                        </th>
 
-                                    <a
-                                        href="/executions/{{ execution.id }}/details"
-                                        class="execution-link"
-                                    >
-                                        {{ execution.id }}
-                                    </a>
+                        <th
+                            data-column="7"
+                            data-label="Error"
+                        >
+                            Error
+                        </th>
+                    </tr>
+                </thead>
 
-                                    <br>
+                <tbody>
 
-                                    <a
-                                        href="/executions/{{ execution.id }}/download"
-                                        class="btn btn-success btn-small"
-                                    >
-                                        Download Log
-                                    </a>
+                    {% for execution in executions %}
 
-                                    {% if execution.status == "Failed" and current_user.role == "admin" %}
+                    <tr>
 
-    <form
-        method="post"
-        action="/executions/{{ execution.id }}/retry"
-        style="display: inline-block; margin-top: 8px;"
-    >
-        <button
-            type="submit"
-            class="btn btn-primary btn-small"
-        >
-            Retry
-        </button>
-    </form>
+                        <td class="execution-id-cell">
+                            <a
+                                href="/executions/{{ execution.id }}/details"
+                                class="execution-link"
+                            >
+                                #{{ execution.id }}
+                            </a>
+                        </td>
 
-{% endif %}
+                        <td>
+                            {{ execution.job_name }}
+                        </td>
 
-                                </td>
-
-                                <td>
-                                    {{ execution.job_name }}
-                                </td>
-
-                                <td>
-                                    <span
-                                        class="
-                                            status-badge
-                                            {% if execution.status == 'Completed' %}
-                                                status-completed
-                                            {% elif execution.status == 'Running' %}
-                                                status-running
-                                            {% elif execution.status == 'Failed' %}
-                                                status-failed
-                                            {% else %}
-                                                status-pending
-                                            {% endif %}
-                                        "
-                                    >
-                                        {{ execution.status }}
-                                    </span>
-                                </td>
-
-                                <td class="date-cell">
-                                    {{ execution.started_at or "-" }}
-                                </td>
-
-                                <td class="date-cell">
-                                    {{ execution.completed_at or "-" }}
-                                </td>
-
-                                <td class="duration-cell">
-                                    {% if execution.duration is not none %}
-                                        {{ "%.4f"|format(execution.duration) }}
+                        <td>
+                            <span
+                                class="
+                                    history-status-badge
+                                    {% if execution.status == 'Completed' %}
+                                        history-status-completed
+                                    {% elif execution.status == 'Running' %}
+                                        history-status-running
+                                    {% elif execution.status == 'Failed' %}
+                                        history-status-failed
+                                    {% elif execution.status == 'Skipped' %}
+                                        history-status-skipped
                                     {% else %}
-                                        -
+                                        history-status-pending
                                     {% endif %}
-                                </td>
+                                "
+                            >
+                                {{ execution.status }}
+                            </span>
+                        </td>
 
-                                <td class="result-cell">
-                                    {{ execution.result or "-" }}
-                                </td>
+                        <td class="history-date-cell">
+                            {{ execution.started_at or "-" }}
+                        </td>
 
-                                <td class="error-cell">
-                                    {{ execution.error_message or "-" }}
-                                </td>
+                        <td class="history-date-cell">
+                            {{ execution.completed_at or "-" }}
+                        </td>
 
-                            </tr>
+                        <td class="history-duration-cell">
+                            {% if execution.duration is not none %}
+                                {{ "%.4f"|format(execution.duration) }} sec
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
 
-                            {% endfor %}
+                        <td class="history-result-cell">
+                            {{ execution.result or "-" }}
+                        </td>
 
-<tr id="historyNoResultsRow" style="display: none;">
-    <td colspan="8" class="empty-state">
-        No matching execution records found.
-    </td>
-</tr>
+                        <td class="history-error-cell">
+                            {{ execution.error_message or "-" }}
+                        </td>
 
-                        </tbody>
+                    </tr>
 
-                    </table>
+                    {% endfor %}
 
-                </div>
+                    <tr
+                        id="historyNoResultsRow"
+                        style="display: none;"
+                    >
+                        <td colspan="8" class="history-empty-state">
+                            No matching execution records found.
+                        </td>
+                    </tr>
 
-            {% else %}
+                    {% if not executions %}
 
-                <div class="empty-state">
+                    <tr>
+                        <td colspan="8" class="history-empty-state">
+                            No execution records are available.
+                        </td>
+                    </tr>
 
-                    <div class="empty-state-icon">
-                        📭
-                    </div>
+                    {% endif %}
 
-                    <p>
-                        No execution history is available.
-                    </p>
+                </tbody>
 
-                </div>
-
-            {% endif %}
-
-<div class="history-pagination">
-
-    <label for="historyRowsPerPage">
-        Rows per page:
-    </label>
-
-    <select id="historyRowsPerPage">
-        <option value="10" selected>10</option>
-        <option value="25">25</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-    </select>
-
-    <span id="historyRecordInfo">
-        Showing 0–0 of 0 records
-    </span>
-
-<button
-    type="button"
-    id="historyFirstPage"
-    class="btn btn-primary btn-small"
->
-    ⏮ First
-</button>
-
-<button
-    type="button"
-    id="historyPreviousPage"
-    class="btn btn-primary btn-small"
->
-    ◀ Previous
-</button>
-
-<span id="historyPageInfo">
-    Page 1 of 1
-</span>
-
-<button
-    type="button"
-    id="historyNextPage"
-    class="btn btn-primary btn-small"
->
-    Next ▶
-</button>
-
-<button
-    type="button"
-    id="historyLastPage"
-    class="btn btn-primary btn-small"
->
-    Last ⏭
-</button>
-</div>
+            </table>
 
         </div>
 
+        <div class="history-pagination">
 
+            <div class="history-pagination-left">
+
+                <label for="historyRowsPerPage">
+                    Rows per page
+                </label>
+
+                <select id="historyRowsPerPage">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+
+                <span id="historyRecordInfo">
+                    Showing 0–0 of 0 records
+                </span>
+
+            </div>
+
+            <div class="history-pagination-right">
+
+                <button
+                    type="button"
+                    id="historyFirstPage"
+                    class="btn btn-secondary btn-small"
+                >
+                    ⏮ First
+                </button>
+
+                <button
+                    type="button"
+                    id="historyPreviousPage"
+                    class="btn btn-secondary btn-small"
+                >
+                    ◀ Previous
+                </button>
+
+                <span id="historyPageInfo">
+                    Page 1 of 1
+                </span>
+
+                <button
+                    type="button"
+                    id="historyNextPage"
+                    class="btn btn-secondary btn-small"
+                >
+                    Next ▶
+                </button>
+
+                <button
+                    type="button"
+                    id="historyLastPage"
+                    class="btn btn-secondary btn-small"
+                >
+                    Last ⏭
+                </button>
+
+            </div>
+
+        </div>
 
     </div>
 
+</div>
 
+<style>
 
+.history-page {
+    width: 100%;
+}
+
+.history-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.history-page-header h1 {
+    margin: 0;
+    color: #111827;
+    font-size: 30px;
+}
+
+.history-page-header p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.history-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.history-summary-card {
+    padding: 18px 20px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-top: 4px solid #2563eb;
+    border-radius: 12px;
+    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
+}
+
+.history-summary-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.history-summary-card strong {
+    display: block;
+    margin-top: 8px;
+    color: #111827;
+    font-size: 28px;
+}
+
+.history-summary-completed {
+    border-top-color: #16a34a;
+}
+
+.history-summary-running {
+    border-top-color: #f59e0b;
+}
+
+.history-summary-failed {
+    border-top-color: #dc2626;
+}
+
+.history-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 18px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.history-search-input,
+.history-status-filter,
+#historyRowsPerPage {
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 14px;
+    outline: none;
+}
+
+.history-search-input {
+    width: 320px;
+}
+
+.history-status-filter {
+    width: 170px;
+}
+
+.history-search-input:focus,
+.history-status-filter:focus,
+#historyRowsPerPage:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+}
+
+.history-card {
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.history-table-container {
+    max-height: 560px;
+    overflow: auto;
+}
+
+.history-table {
+    width: 100%;
+    min-width: 1250px;
+    border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    vertical-align: top;
+}
+
+.history-table th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #087cc1;
+    color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.history-table tbody tr:nth-child(even) {
+    background: #f8fafc;
+}
+
+.history-table tbody tr:hover {
+    background: #eff6ff;
+}
+
+.execution-link {
+    color: #2563eb;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.execution-link:hover {
+    text-decoration: underline;
+}
+
+.history-status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.history-status-completed {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.history-status-running {
+    color: #854d0e;
+    background: #fef3c7;
+}
+
+.history-status-failed {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.history-status-skipped {
+    color: #5b21b6;
+    background: #ede9fe;
+}
+
+.history-status-pending {
+    color: #4b5563;
+    background: #e5e7eb;
+}
+
+.history-date-cell {
+    min-width: 175px;
+}
+
+.history-duration-cell {
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.history-result-cell,
+.history-error-cell {
+    min-width: 220px;
+    max-width: 320px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+}
+
+.history-empty-state {
+    padding: 40px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.history-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 18px;
+    background: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+}
+
+.history-pagination-left,
+.history-pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.history-pagination-left label {
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#historyRowsPerPage {
+    width: 70px;
+}
+
+#historyRecordInfo,
+#historyPageInfo {
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+
+    .history-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .history-pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .history-pagination-left,
+    .history-pagination-right {
+        flex-wrap: wrap;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .history-page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .history-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .history-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .history-search-input,
+    .history-status-filter,
+    #historyClearFilters {
+        width: 100%;
+    }
+
+}
+
+</style>
 
 <script>
 
@@ -660,33 +668,36 @@ const historyPageInfo =
 const historyRecordInfo =
     document.getElementById("historyRecordInfo");
 
-
 const historyRowsPerPageSelect =
     document.getElementById("historyRowsPerPage");
 
 const historyNoResultsRow =
     document.getElementById("historyNoResultsRow");
 
-    const historyRows = Array.from(
+const historyTableBody =
+    document.querySelector(".history-table tbody");
+
+const historyRows = Array.from(
     document.querySelectorAll(
-        "tbody tr:not(#historyNoResultsRow)"
+        ".history-table tbody tr:not(#historyNoResultsRow)"
     )
-);
+).filter(function (row) {
+    return row.querySelector(".execution-link");
+});
 
 let historyRowsPerPage = 10;
-
 let historyCurrentPage = 1;
+let historySortColumn = 0;
+let historySortAscending = false;
 
 function getFilteredHistoryRows() {
-
     const searchText =
         historySearch.value.trim().toLowerCase();
 
     const selectedStatus =
-        historyStatusFilter.value.toLowerCase();
+        historyStatusFilter.value.trim().toLowerCase();
 
     return historyRows.filter(function (row) {
-
         const jobName =
             row.cells[1].textContent
                 .trim()
@@ -705,13 +716,34 @@ function getFilteredHistoryRows() {
             status === selectedStatus;
 
         return matchesSearch && matchesStatus;
-
     });
+}
 
+function updateExportLink() {
+    const parameters = new URLSearchParams();
+
+    if (historySearch.value.trim()) {
+        parameters.set(
+            "search",
+            historySearch.value.trim()
+        );
+    }
+
+    if (historyStatusFilter.value) {
+        parameters.set(
+            "status",
+            historyStatusFilter.value
+        );
+    }
+
+    const query = parameters.toString();
+
+    historyExportCsv.href = query
+        ? `/history/export.csv?${query}`
+        : "/history/export.csv";
 }
 
 function displayHistoryPage() {
-
     const filteredRows =
         getFilteredHistoryRows();
 
@@ -722,12 +754,6 @@ function displayHistoryPage() {
             historyRowsPerPage
         )
     );
-
-
-historyNoResultsRow.style.display =
-    filteredRows.length === 0
-        ? ""
-        : "none";
 
     if (historyCurrentPage > totalPages) {
         historyCurrentPage = totalPages;
@@ -744,85 +770,114 @@ historyNoResultsRow.style.display =
         row.style.display = "none";
     });
 
-filteredRows
+    filteredRows
         .slice(startIndex, endIndex)
         .forEach(function (row) {
             row.style.display = "";
         });
 
-const visibleStart =
-    filteredRows.length === 0
-        ? 0
-        : startIndex + 1;
+    historyNoResultsRow.style.display =
+        filteredRows.length === 0
+            ? ""
+            : "none";
 
-const visibleEnd =
-    Math.min(
-        endIndex,
-        filteredRows.length
-    );
+    const visibleStart =
+        filteredRows.length === 0
+            ? 0
+            : startIndex + 1;
 
-historyRecordInfo.textContent =
-    `Showing ${visibleStart}–${visibleEnd} of ${filteredRows.length} records`;
+    const visibleEnd =
+        Math.min(
+            endIndex,
+            filteredRows.length
+        );
 
-historyPageInfo.textContent =
+    historyRecordInfo.textContent =
+        `Showing ${visibleStart}–${visibleEnd} of ${filteredRows.length} records`;
+
+    historyPageInfo.textContent =
         `Page ${historyCurrentPage} of ${totalPages}`;
 
-historyFirstPage.disabled =
-    historyCurrentPage === 1;
+    historyFirstPage.disabled =
+        historyCurrentPage === 1;
 
-historyPreviousPage.disabled =
-    historyCurrentPage === 1;
+    historyPreviousPage.disabled =
+        historyCurrentPage === 1;
 
-historyNextPage.disabled =
-    historyCurrentPage === totalPages;
+    historyNextPage.disabled =
+        historyCurrentPage === totalPages;
 
-historyLastPage.disabled =
-    historyCurrentPage === totalPages;
-
+    historyLastPage.disabled =
+        historyCurrentPage === totalPages;
 }
-function filterHistory() {
 
+function filterHistory() {
     historyCurrentPage = 1;
 
     localStorage.setItem(
-    "historySearch",
-    historySearch.value
-);
+        "historySearch",
+        historySearch.value
+    );
 
-localStorage.setItem(
-    "historyStatus",
-    historyStatusFilter.value
-);
+    localStorage.setItem(
+        "historyStatus",
+        historyStatusFilter.value
+    );
 
     historyClearFilters.disabled =
         historySearch.value.trim() === "" &&
         historyStatusFilter.value === "";
 
-    const exportParameters = new URLSearchParams();
-
-    if (historySearch.value.trim()) {
-        exportParameters.set(
-            "search",
-            historySearch.value.trim()
-        );
-    }
-
-    if (historyStatusFilter.value) {
-        exportParameters.set(
-            "status",
-            historyStatusFilter.value
-        );
-    }
-
-    const exportQuery = exportParameters.toString();
-
-    historyExportCsv.href = exportQuery
-        ? `/history/export.csv?${exportQuery}`
-        : "/history/export.csv";
-
-
+    updateExportLink();
     displayHistoryPage();
+}
 
+function sortHistoryRows(
+    column,
+    ascending,
+) {
+    historyRows.sort(function (firstRow, secondRow) {
+        let firstValue =
+            firstRow.cells[column]
+                .textContent
+                .trim()
+                .toLowerCase();
+
+        let secondValue =
+            secondRow.cells[column]
+                .textContent
+                .trim()
+                .toLowerCase();
+
+        if (column === 0 || column === 5) {
+            const firstNumber =
+                Number.parseFloat(
+                    firstValue.replace(/[^\d.-]/g, "")
+                );
+
+            const secondNumber =
+                Number.parseFloat(
+                    secondValue.replace(/[^\d.-]/g, "")
+                );
+
+            if (
+                !Number.isNaN(firstNumber) &&
+                !Number.isNaN(secondNumber)
+            ) {
+                return ascending
+                    ? firstNumber - secondNumber
+                    : secondNumber - firstNumber;
+            }
+        }
+
+        return ascending
+            ? firstValue.localeCompare(secondValue)
+            : secondValue.localeCompare(firstValue);
+    });
+
+    historyRows.forEach(function (row) {
+        historyTableBody.appendChild(row);
+    });
 }
 
 historySearch.addEventListener(
@@ -838,41 +893,15 @@ historyStatusFilter.addEventListener(
 historyClearFilters.addEventListener(
     "click",
     function () {
-
         historySearch.value = "";
-
         historyStatusFilter.value = "";
-
-historyCurrentPage = 1;
-
-filterHistory();
-
-    }
-);
-
-document.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (event.key !== "Escape") {
-            return;
-        }
-
-        historySearch.value = "";
-
-        historyStatusFilter.value = "";
-
-historyCurrentPage = 1;
-
-filterHistory();
-
+        filterHistory();
     }
 );
 
 historyRowsPerPageSelect.addEventListener(
     "change",
     function () {
-
         historyRowsPerPage =
             Number(historyRowsPerPageSelect.value);
 
@@ -882,39 +911,31 @@ historyRowsPerPageSelect.addEventListener(
         );
 
         historyCurrentPage = 1;
-
         displayHistoryPage();
-
     }
 );
 
 historyFirstPage.addEventListener(
     "click",
     function () {
-
         historyCurrentPage = 1;
-
         displayHistoryPage();
-
     }
 );
 
 historyPreviousPage.addEventListener(
     "click",
     function () {
-
         if (historyCurrentPage > 1) {
             historyCurrentPage--;
             displayHistoryPage();
         }
-
     }
 );
 
 historyNextPage.addEventListener(
     "click",
     function () {
-
         const totalPages = Math.max(
             1,
             Math.ceil(
@@ -927,16 +948,13 @@ historyNextPage.addEventListener(
             historyCurrentPage++;
             displayHistoryPage();
         }
-
     }
 );
-
 
 historyLastPage.addEventListener(
     "click",
     function () {
-
-        const totalPages = Math.max(
+        historyCurrentPage = Math.max(
             1,
             Math.ceil(
                 getFilteredHistoryRows().length /
@@ -944,135 +962,90 @@ historyLastPage.addEventListener(
             )
         );
 
-        historyCurrentPage = totalPages;
-
         displayHistoryPage();
-
     }
 );
 
-let historySortColumn = -1;
-let historySortAscending = true;
+document
+    .querySelectorAll(".history-table thead th")
+    .forEach(function (header) {
+        header.addEventListener(
+            "click",
+            function () {
+                const column =
+                    Number(header.dataset.column);
 
-document.querySelectorAll("thead th").forEach(function (header) {
+                if (historySortColumn === column) {
+                    historySortAscending =
+                        !historySortAscending;
+                }
+                else {
+                    historySortColumn = column;
+                    historySortAscending =
+                        column !== 0;
+                }
 
-    header.style.cursor = "pointer";
+                document
+                    .querySelectorAll(
+                        ".history-table thead th"
+                    )
+                    .forEach(function (item) {
+                        item.textContent =
+                            item.dataset.label;
+                    });
 
-    header.addEventListener("click", function () {
+                header.textContent =
+                    header.dataset.label +
+                    (
+                        historySortAscending
+                            ? " ▲"
+                            : " ▼"
+                    );
 
-        const column = Number(header.dataset.column);
+                sortHistoryRows(
+                    historySortColumn,
+                    historySortAscending
+                );
 
-if (historySortColumn === column) {
-    historySortAscending = !historySortAscending;
-} else {
-    historySortColumn = column;
-
-    if (column === 0) {
-        historySortAscending = false;
-    } else {
-        historySortAscending = true;
-    }
-}
-
-document.querySelectorAll("thead th").forEach(function (item) {
-
-    item.textContent = item.dataset.label;
-
-    if (Number(item.dataset.column) === 0) {
-        item.textContent += " ▼";
-    }
-
-});
-
-header.textContent =
-    header.dataset.label +
-    (historySortAscending ? " ▲" : " ▼");
-
-        historyRows.sort(function (a, b) {
-
-            let valueA = a.cells[column].innerText.trim().toLowerCase();
-            let valueB = b.cells[column].innerText.trim().toLowerCase();
-
-            const numberA = parseFloat(valueA);
-            const numberB = parseFloat(valueB);
-
-            if (!isNaN(numberA) && !isNaN(numberB)) {
-                valueA = numberA;
-                valueB = numberB;
+                historyCurrentPage = 1;
+                displayHistoryPage();
             }
-
-            if (valueA < valueB)
-                return historySortAscending ? -1 : 1;
-
-            if (valueA > valueB)
-                return historySortAscending ? 1 : -1;
-
-            return 0;
-
-        });
-
-        const tbody = document.querySelector("tbody");
-
-        historyRows.forEach(function (row) {
-            tbody.appendChild(row);
-        });
-
-        historyCurrentPage = 1;
-
-        displayHistoryPage();
-
+        );
     });
 
-});
-
 historyRows.forEach(function (row) {
-
     row.style.cursor = "pointer";
 
-    row.addEventListener("click", function (event) {
+    row.addEventListener(
+        "click",
+        function (event) {
+            if (
+                event.target.closest("a") ||
+                event.target.closest("button")
+            ) {
+                return;
+            }
 
-        if (
-            event.target.closest("a") ||
-            event.target.closest("button")
-        ) {
-            return;
+            const link =
+                row.querySelector(".execution-link");
+
+            if (link) {
+                window.location.href = link.href;
+            }
         }
+    );
+});
 
-        const executionLink =
-            row.querySelector(".execution-link");
-
-        if (executionLink) {
-            window.location.href =
-                executionLink.href;
+document.addEventListener(
+    "keydown",
+    function (event) {
+        if (event.key === "Escape") {
+            historySearch.value = "";
+            historyStatusFilter.value = "";
+            filterHistory();
         }
-
-    });
-
-});
-
-historySortColumn = 0;
-historySortAscending = false;
-
-const defaultHeader =
-    document.querySelector('th[data-column="0"]');
-
-defaultHeader.textContent =
-    defaultHeader.dataset.label + " ▼";
-
-historyRows.sort(function (a, b) {
-
-    return Number(b.cells[0].innerText) -
-           Number(a.cells[0].innerText);
-
-});
-
-const tbody = document.querySelector("tbody");
-
-historyRows.forEach(function (row) {
-
-    tbody.appendChild(row);
-
-});
+    }
+);
 
 historySearch.value =
     localStorage.getItem("historySearch") || "";
@@ -1086,22 +1059,20 @@ historyRowsPerPageSelect.value =
 historyRowsPerPage =
     Number(historyRowsPerPageSelect.value);
 
-historyClearFilters.disabled =
-    historySearch.value.trim() === "" &&
-    historyStatusFilter.value === "";
+sortHistoryRows(0, false);
 
-historyCurrentPage = 1;
+const firstHeader =
+    document.querySelector(
+        '.history-table th[data-column="0"]'
+    );
+
+if (firstHeader) {
+    firstHeader.textContent =
+        firstHeader.dataset.label + " ▼";
+}
 
 filterHistory();
 
-historySearch.focus();
-
-historySearch.select();
-
 </script>
 
-
-
-</body>
-
-</html>
+{% endblock %}
