@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -318,4 +321,81 @@ def check_job_name_v1(
             "exists": False,
             "name": validated_name,
         },
+    )
+
+
+@router.get(
+    "/{job_id}/script",
+    response_class=FileResponse,
+)
+def download_job_script_v1(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Download the uploaded script belonging to one job.
+    """
+
+    job = (
+        db.query(Job)
+        .filter(Job.id == job_id)
+        .first()
+    )
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+    if not job.is_enabled:
+        raise HTTPException(
+            status_code=400,
+            detail="Job is disabled.",
+        )
+
+    configured_script_path = (
+        job.script_path or ""
+    ).strip()
+
+    if not configured_script_path:
+        raise HTTPException(
+            status_code=404,
+            detail="Job script path is not configured.",
+        )
+
+    uploads_directory = (
+        Path("uploads")
+        .resolve()
+    )
+
+    script_path = Path(
+        configured_script_path
+    ).resolve()
+
+    try:
+        script_path.relative_to(
+            uploads_directory
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Job script is outside the allowed "
+                "uploads directory."
+            ),
+        ) from error
+
+    if not script_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Job script file was not found.",
+        )
+
+    return FileResponse(
+        path=str(script_path),
+        filename=script_path.name,
+        media_type="application/octet-stream",
     )
