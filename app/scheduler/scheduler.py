@@ -11,6 +11,9 @@ from app.services.job_runner import execute_job
 
 from app.services.execution_logger import write_execution_log
 
+from app.services.agent_job_service import (
+    mark_stale_agent_jobs_failed,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -443,10 +446,43 @@ def load_enabled_jobs() -> None:
             )
 
 
+def recover_stale_remote_jobs() -> None:
+    """
+    Recover remote jobs that have been
+    stuck for too long.
+    """
+
+    try:
+        recovered = mark_stale_agent_jobs_failed()
+
+        if recovered:
+            logger.warning(
+                "Recovered %s stale remote job(s).",
+                recovered,
+            )
+
+    except Exception:
+        logger.exception(
+            "Failed to recover stale remote jobs."
+        )
+
+
 def start_scheduler() -> None:
     """Start APScheduler and restore saved schedules."""
+
     if not scheduler.running:
         scheduler.start()
         logger.info("Scheduler started successfully.")
 
     load_enabled_jobs()
+
+    scheduler.add_job(
+        recover_stale_remote_jobs,
+        trigger=IntervalTrigger(minutes=5),
+        id="recover_stale_remote_jobs",
+        replace_existing=True,
+    )
+
+    logger.info(
+        "Stale remote job recovery scheduled."
+    )
