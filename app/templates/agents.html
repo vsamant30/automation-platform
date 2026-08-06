@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}
+Remote Agents
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Remote Agents</h1>
+            <p class="text-muted mb-0">
+                Monitor registered agents and remote job execution.
+            </p>
+        </div>
+
+        <a href="/dashboard" class="btn btn-outline-secondary">
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Total Agents</div>
+                    <div class="fs-3 fw-semibold">
+                        {{ agents | length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Online Agents</div>
+                    <div class="fs-3 fw-semibold text-success">
+                        {{
+                            agents
+                            | selectattr("status", "equalto", "Online")
+                            | list
+                            | length
+                        }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Running Jobs</div>
+                    <div class="fs-3 fw-semibold text-primary">
+                        {{
+                            agent_jobs
+                            | selectattr("status", "equalto", "Running")
+                            | list
+                            | length
+                        }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Failed Jobs</div>
+                    <div class="fs-3 fw-semibold text-danger">
+                        {{
+                            agent_jobs
+                            | selectattr("status", "equalto", "Failed")
+                            | list
+                            | length
+                        }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h2 class="h5 mb-0">Registered Agents</h2>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Hostname</th>
+                            <th>Platform</th>
+                            <th>Status</th>
+                            <th>Enabled</th>
+                            <th>Last Seen</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for agent in agents %}
+                        <tr>
+                            <td>{{ agent.id }}</td>
+                            <td class="fw-semibold">{{ agent.name }}</td>
+                            <td>{{ agent.hostname or "-" }}</td>
+                            <td>{{ agent.platform }}</td>
+                            <td>
+                                {% if agent.status == "Online" %}
+                                <span class="badge bg-success">
+                                    Online
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ agent.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if agent.is_enabled %}
+                                <span class="badge bg-success">
+                                    Enabled
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    Disabled
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ agent.last_seen_at or "-" }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                No agents are registered.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0">Remote Job Queue</h2>
+
+            <span class="text-muted small">
+                {{ agent_jobs | length }} record(s)
+            </span>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Agent Job ID</th>
+                            <th>Agent ID</th>
+                            <th>Job</th>
+                            <th>Script Type</th>
+                            <th>Status</th>
+                            <th>Queued At</th>
+                            <th>Started At</th>
+                            <th>Completed At</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for agent_job in agent_jobs %}
+                        <tr>
+                            <td>{{ agent_job.id }}</td>
+                            <td>{{ agent_job.agent_id }}</td>
+                            <td>
+                                <div class="fw-semibold">
+                                    {{ agent_job.job_name }}
+                                </div>
+                                <div class="text-muted small">
+                                    Job ID: {{ agent_job.job_id }}
+                                </div>
+                            </td>
+                            <td>{{ agent_job.script_type }}</td>
+                            <td>
+                                {% if agent_job.status == "Completed" %}
+                                <span class="badge bg-success">
+                                    Completed
+                                </span>
+                                {% elif agent_job.status == "Running" %}
+                                <span class="badge bg-primary">
+                                    Running
+                                </span>
+                                {% elif agent_job.status == "Failed" %}
+                                <span class="badge bg-danger">
+                                    Failed
+                                </span>
+                                {% elif agent_job.status == "Claimed" %}
+                                <span class="badge bg-warning text-dark">
+                                    Claimed
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ agent_job.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ agent_job.queued_at or "-" }}</td>
+                            <td>{{ agent_job.started_at or "-" }}</td>
+                            <td>{{ agent_job.completed_at or "-" }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                No remote job records are available.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if selected_agent_job %}
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-white">
+
+        <div>
+            <h2 class="h5 mb-1">
+                Live Logs
+            </h2>
+
+            <p class="text-muted small mb-0">
+                Agent Job ID:
+                {{ selected_agent_job.id }}
+                |
+                {{ selected_agent_job.job_name }}
+                |
+                Status:
+                {{ selected_agent_job.status }}
+            </p>
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        <div
+            id="agentJobLogViewer"
+            style="
+                background: #111827;
+                color: #e5e7eb;
+                padding: 16px;
+                border-radius: 8px;
+                min-height: 260px;
+                max-height: 500px;
+                overflow-y: auto;
+                font-family: Consolas, monospace;
+                font-size: 13px;
+                white-space: pre-wrap;
+            "
+        >
+            {% for log in agent_job_logs %}
+
+                {% if log.stream == "stderr" %}
+                <div style="color: #fca5a5;">
+                {% elif log.stream == "stdout" %}
+                <div style="color: #86efac;">
+                {% else %}
+                <div style="color: #93c5fd;">
+                {% endif %}
+
+                    <span>
+                        [{{ log.sequence }}]
+                    </span>
+
+                    <span>
+                        [{{ log.stream | upper }}]
+                    </span>
+
+                    <span>
+                        {{ log.message }}
+                    </span>
+
+                </div>
+
+            {% else %}
+
+                <div style="color: #9ca3af;">
+                    No logs are available for this remote job.
+                </div>
+
+            {% endfor %}
+        </div>
+
+    </div>
+
+</div>
+
+{% else %}
+
+<div class="card shadow-sm mt-4">
+
+    <div class="card-body text-center text-muted py-4">
+        No remote job is available for log viewing.
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

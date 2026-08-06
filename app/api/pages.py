@@ -1,5 +1,14 @@
 from app.services.job_name_validator import validate_job_name
 
+from app.services.agent_service import get_agents
+
+from app.services.agent_job_service import (
+    get_agent_jobs,
+)
+
+from app.services.agent_job_log_service import (
+    get_agent_job_logs,
+)
 
 import csv
 import io
@@ -1563,6 +1572,57 @@ def retry_job(
         return RedirectResponse(
             url=f"/jobs/{job.id}/details",
             status_code=303,
+        )
+
+    finally:
+        db.close()
+
+
+@router.get("/agents")
+def agents_page(request: Request):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        agents = get_agents()
+
+        agent_jobs = get_agent_jobs()
+
+        selected_agent_job = (
+            agent_jobs[0]
+            if agent_jobs
+            else None
+        )
+
+        agent_job_logs = (
+            get_agent_job_logs(selected_agent_job.id)
+            if selected_agent_job is not None
+            else []
+        )
+
+        return templates.TemplateResponse(
+            request=request,
+            name="agents.html",
+            context={
+                "request": request,
+                "current_user": current_user,
+                "agents": agents,
+                "agent_jobs": agent_jobs,
+                "selected_agent_job": selected_agent_job,
+                "agent_job_logs": agent_job_logs,
+            },
         )
 
     finally:
