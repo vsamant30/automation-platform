@@ -303,23 +303,30 @@ def send_test_email() -> bool:
         )
 
         message["Subject"] = (
-            "Automation Platform - Test Email"
+            "Automation Platform - SMTP Test Successful"
         )
 
         message.set_content(
-            """
-Congratulations!
+    f"""
+Hello,
 
-Your Automation Platform email configuration
-is working successfully.
+This is a test email from Automation Platform.
 
-If you received this email, your SMTP
-configuration is valid.
+Your SMTP configuration has been verified successfully.
+
+Configuration Details
+---------------------
+SMTP Host : {application_settings.smtp_host}
+SMTP Port : {application_settings.smtp_port}
+TLS       : {"Enabled" if application_settings.smtp_use_tls else "Disabled"}
+SSL       : {"Enabled" if application_settings.smtp_use_ssl else "Disabled"}
+
+If you received this email, your Automation Platform is ready to send execution notifications.
 
 Regards,
 Automation Platform
 """.strip()
-        )
+)
 
         _send_message(
             message=message,
