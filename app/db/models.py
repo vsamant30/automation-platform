@@ -204,6 +204,7 @@ class JobExecution(Base):
         default=datetime.utcnow,
     )
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -249,6 +250,7 @@ class User(Base):
         default=datetime.utcnow,
         nullable=False,
     )
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -307,6 +309,7 @@ class AuditLog(Base):
         nullable=False,
         index=True,
     )
+
 
 class ApplicationSettings(Base):
     __tablename__ = "application_settings"
@@ -375,6 +378,75 @@ class ApplicationSettings(Base):
     notify_on_failed = Column(
         Boolean,
         default=True,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class Agent(Base):
+    __tablename__ = "agents"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    name = Column(
+        String,
+        unique=True,
+        index=True,
+        nullable=False,
+    )
+
+    platform = Column(
+        String,
+        default="windows",
+        nullable=False,
+    )
+
+    hostname = Column(
+        String,
+        nullable=True,
+    )
+
+    base_url = Column(
+        String,
+        nullable=False,
+    )
+
+    api_key_hash = Column(
+        String,
+        nullable=True,
+    )
+
+    status = Column(
+        String,
+        default="Offline",
+        nullable=False,
+        index=True,
+    )
+
+    is_enabled = Column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+
+    last_seen_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
         nullable=False,
     )
 
