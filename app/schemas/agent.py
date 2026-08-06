@@ -18,6 +18,11 @@ class AgentUpdate(BaseModel):
     is_enabled: bool
 
 
+class AgentHeartbeat(BaseModel):
+    hostname: str | None = None
+
+
+
 class AgentResponse(BaseModel):
     id: int
     name: str

@@ -1,3 +1,4 @@
+from datetime import datetime
 from app.db.database import SessionLocal
 from app.db.models import Agent
 
@@ -299,6 +300,61 @@ def delete_agent(
         db.commit()
 
         return True
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+def record_agent_heartbeat(
+    agent_id: int,
+    *,
+    hostname: str | None = None,
+) -> Agent:
+    """
+    Mark an enabled agent as online and update
+    its most recent heartbeat timestamp.
+    """
+
+    cleaned_hostname = (
+        hostname.strip()
+        if hostname and hostname.strip()
+        else None
+    )
+
+    db = SessionLocal()
+
+    try:
+        agent = (
+            db.query(Agent)
+            .filter(Agent.id == agent_id)
+            .first()
+        )
+
+        if agent is None:
+            raise ValueError(
+                f"Agent not found: {agent_id}"
+            )
+
+        if not agent.is_enabled:
+            raise ValueError(
+                f"Agent is disabled: {agent_id}"
+            )
+
+        agent.status = "Online"
+        agent.last_seen_at = datetime.utcnow()
+
+        if cleaned_hostname is not None:
+            agent.hostname = cleaned_hostname
+
+        db.commit()
+        db.refresh(agent)
+        db.expunge(agent)
+
+        return agent
 
     except Exception:
         db.rollback()

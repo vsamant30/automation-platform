@@ -5,6 +5,7 @@ from app.core.permissions import require_admin
 from app.db.models import User
 from app.schemas.agent import (
     AgentCreate,
+    AgentHeartbeat,
     AgentResponse,
     AgentUpdate,
 )
@@ -14,6 +15,7 @@ from app.services.agent_service import (
     delete_agent,
     get_agent,
     get_agents,
+    record_agent_heartbeat,
     update_agent,
 )
 
@@ -136,6 +138,46 @@ def update_agent_v1(
     return ApiResponse(
         success=True,
         message="Agent updated successfully.",
+        data=agent,
+    )
+
+
+@router.post(
+    "/{agent_id}/heartbeat",
+    response_model=ApiResponse[AgentResponse],
+)
+def heartbeat_agent_v1(
+    agent_id: int,
+    heartbeat_data: AgentHeartbeat,
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+
+    try:
+        agent = record_agent_heartbeat(
+            agent_id=agent_id,
+            hostname=heartbeat_data.hostname,
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        status_code = (
+            404
+            if error_message.startswith(
+                "Agent not found:"
+            )
+            else 400
+        )
+
+        raise HTTPException(
+            status_code=status_code,
+            detail=error_message,
+        ) from error
+
+    return ApiResponse(
+        success=True,
+        message="Agent heartbeat recorded successfully.",
         data=agent,
     )
 
