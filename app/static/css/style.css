@@ -409,9 +409,21 @@
         }
 
         .btn-secondary {
-    background: #6c757d;
-    color: white;
-}
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            background: #ffffff;
+            color: #374151;
+            border: 1px solid #9ca3af;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #f3f4f6;
+            color: #111827;
+            border-color: #6b7280;
+        }
 
         .btn-small {
             padding: 8px 14px;
