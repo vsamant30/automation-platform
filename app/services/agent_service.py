@@ -362,3 +362,50 @@ def record_agent_heartbeat(
 
     finally:
         db.close()
+
+
+def mark_stale_agents_offline(
+    *,
+    stale_after_minutes: int = 5,
+) -> int:
+    """
+    Mark agents Offline if they have not
+    sent a heartbeat recently.
+    """
+
+    from datetime import timedelta
+
+    cutoff = (
+        datetime.utcnow()
+        - timedelta(minutes=stale_after_minutes)
+    )
+
+    db = SessionLocal()
+
+    try:
+        updated = (
+            db.query(Agent)
+            .filter(
+                Agent.is_enabled.is_(True),
+                Agent.status == "Online",
+                Agent.last_seen_at.is_not(None),
+                Agent.last_seen_at < cutoff,
+            )
+            .update(
+                {
+                    Agent.status: "Offline",
+                },
+                synchronize_session=False,
+            )
+        )
+
+        db.commit()
+
+        return updated
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
