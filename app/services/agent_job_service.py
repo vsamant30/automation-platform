@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.db.database import SessionLocal
 from app.db.models import (
@@ -379,6 +379,95 @@ def fail_agent_job(
         db.expunge(agent_job)
 
         return agent_job
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+
+def mark_stale_agent_jobs_failed(
+    *,
+    claimed_timeout_minutes: int = 5,
+    running_timeout_minutes: int = 60,
+) -> int:
+    """
+    Mark stale Claimed or Running agent jobs as Failed.
+
+    Claimed jobs use claimed_at.
+    Running jobs use started_at.
+    """
+
+    if claimed_timeout_minutes <= 0:
+        raise ValueError(
+            "Claimed timeout must be greater than zero."
+        )
+
+    if running_timeout_minutes <= 0:
+        raise ValueError(
+            "Running timeout must be greater than zero."
+        )
+
+    current_time = datetime.utcnow()
+
+    claimed_cutoff = (
+        current_time
+        - timedelta(
+            minutes=claimed_timeout_minutes
+        )
+    )
+
+    running_cutoff = (
+        current_time
+        - timedelta(
+            minutes=running_timeout_minutes
+        )
+    )
+
+    db = SessionLocal()
+
+    try:
+        stale_claimed_jobs = (
+            db.query(AgentJob)
+            .filter(
+                AgentJob.status == "Claimed",
+                AgentJob.claimed_at.is_not(None),
+                AgentJob.claimed_at < claimed_cutoff,
+            )
+            .all()
+        )
+
+        stale_running_jobs = (
+            db.query(AgentJob)
+            .filter(
+                AgentJob.status == "Running",
+                AgentJob.started_at.is_not(None),
+                AgentJob.started_at < running_cutoff,
+            )
+            .all()
+        )
+
+        stale_jobs = (
+            stale_claimed_jobs
+            + stale_running_jobs
+        )
+
+        for agent_job in stale_jobs:
+            previous_status = agent_job.status
+
+            agent_job.status = "Failed"
+            agent_job.error_message = (
+                "Remote job timed out while in "
+                f"{previous_status} status."
+            )
+            agent_job.completed_at = current_time
+
+        db.commit()
+
+        return len(stale_jobs)
 
     except Exception:
         db.rollback()
