@@ -3,21 +3,58 @@ import smtplib
 
 from email.message import EmailMessage
 
-from app.core.config import settings
-from app.db.models import Job, JobExecution
+from app.db.database import SessionLocal
 
+from app.db.models import (
+    ApplicationSettings,
+    Job,
+    JobExecution,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def _get_recipients() -> list[str]:
+
+def _get_application_settings() -> ApplicationSettings:
+    """
+    Return the single application settings record.
+    """
+
+    db = SessionLocal()
+
+    try:
+        settings_row = (
+            db.query(ApplicationSettings)
+            .first()
+        )
+
+        if settings_row is None:
+            raise ValueError(
+                "Application settings not found."
+            )
+
+        db.expunge(settings_row)
+
+        return settings_row
+
+    finally:
+        db.close()
+
+
+
+def _get_recipients(
+    application_settings: ApplicationSettings,
+) -> list[str]:
     """
     Return a cleaned list of configured email recipients.
     """
 
     return [
         address.strip()
-        for address in settings.EMAIL_TO_ADDRESSES.split(",")
+        for address in (
+            application_settings.email_to_addresses
+            or ""
+        ).split(",")
         if address.strip()
     ]
 
@@ -30,51 +67,67 @@ def _should_send_notification(
     the supplied execution status.
     """
 
-    if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+    application_settings = (
+        _get_application_settings()
+    )
+
+    if (
+        not application_settings
+        .email_notifications_enabled
+    ):
         return False
 
     if execution.status == "Completed":
-        return settings.EMAIL_NOTIFY_ON_COMPLETED
+        return (
+            application_settings
+            .notify_on_completed
+        )
 
     if execution.status == "Failed":
-        return settings.EMAIL_NOTIFY_ON_FAILED
+        return (
+            application_settings
+            .notify_on_failed
+        )
 
     return False
 
 
-def _validate_email_configuration() -> None:
+
+def _validate_email_configuration(
+    application_settings: ApplicationSettings,
+) -> None:
     """
     Validate the required SMTP configuration.
     """
 
-    if not settings.SMTP_HOST:
+    if not application_settings.smtp_host:
         raise ValueError(
-            "SMTP_HOST is not configured."
+            "SMTP host is not configured."
         )
 
-    if not settings.EMAIL_FROM_ADDRESS:
+    if not application_settings.email_from_address:
         raise ValueError(
-            "EMAIL_FROM_ADDRESS is not configured."
+            "Sender email address is not configured."
         )
 
-    if not _get_recipients():
+    if not _get_recipients(application_settings):
         raise ValueError(
-            "EMAIL_TO_ADDRESSES is not configured."
-        )
+            "Recipient email addresses are not configured."
+    )
 
     if (
-        settings.SMTP_USE_SSL
-        and settings.SMTP_USE_TLS
+        application_settings.smtp_use_ssl
+        and application_settings.smtp_use_tls
     ):
         raise ValueError(
-            "SMTP_USE_SSL and SMTP_USE_TLS "
-            "cannot both be enabled."
+            "SMTP SSL and TLS cannot both be enabled."
         )
 
 
 def _build_job_notification(
     job: Job,
     execution: JobExecution,
+    application_settings: ApplicationSettings,
 ) -> EmailMessage:
     """
     Build the execution notification email.
@@ -82,8 +135,13 @@ def _build_job_notification(
 
     message = EmailMessage()
 
-    message["From"] = settings.EMAIL_FROM_ADDRESS
-    message["To"] = ", ".join(_get_recipients())
+    message["From"] = (
+        application_settings.email_from_address
+    )
+
+    message["To"] = ", ".join(
+        _get_recipients(application_settings)
+    )
 
     message["Subject"] = (
         f"[{execution.status}] "
@@ -123,21 +181,22 @@ Error:
 
 def _send_message(
     message: EmailMessage,
+    application_settings: ApplicationSettings,
 ) -> None:
     """
     Send one email through the configured SMTP server.
     """
 
-    if settings.SMTP_USE_SSL:
+    if application_settings.smtp_use_ssl:
         smtp_client = smtplib.SMTP_SSL(
-            host=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
+            host=application_settings.smtp_host,
+            port=application_settings.smtp_port,
             timeout=30,
         )
     else:
         smtp_client = smtplib.SMTP(
-            host=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
+            host=application_settings.smtp_host,
+            port=application_settings.smtp_port,
             timeout=30,
         )
 
@@ -145,16 +204,16 @@ def _send_message(
         smtp_client.ehlo()
 
         if (
-            settings.SMTP_USE_TLS
-            and not settings.SMTP_USE_SSL
+            application_settings.smtp_use_tls
+            and not application_settings.smtp_use_ssl
         ):
             smtp_client.starttls()
             smtp_client.ehlo()
 
-        if settings.SMTP_USERNAME:
+        if application_settings.smtp_username:
             smtp_client.login(
-                settings.SMTP_USERNAME,
-                settings.SMTP_PASSWORD,
+                application_settings.smtp_username,
+                application_settings.smtp_password or "",
             )
 
         smtp_client.send_message(message)
@@ -178,14 +237,24 @@ def send_job_execution_notification(
         return False
 
     try:
-        _validate_email_configuration()
+        application_settings = (
+            _get_application_settings()
+        )
+
+        _validate_email_configuration(
+            application_settings
+        )
 
         message = _build_job_notification(
             job=job,
             execution=execution,
+            application_settings=application_settings,
         )
 
-        _send_message(message)
+        _send_message(
+            message=message,
+            application_settings=application_settings,
+        )
 
         logger.info(
             "Execution notification email sent. "
@@ -202,6 +271,70 @@ def send_job_execution_notification(
             "Job ID: %s, Execution ID: %s",
             job.id,
             execution.id,
+        )
+
+        return False
+
+def send_test_email() -> bool:
+    """
+    Send a test email using the current
+    application settings.
+    """
+
+    try:
+        application_settings = (
+            _get_application_settings()
+        )
+
+        _validate_email_configuration(
+            application_settings
+        )
+
+        message = EmailMessage()
+
+        message["From"] = (
+            application_settings.email_from_address
+        )
+
+        message["To"] = ", ".join(
+            _get_recipients(
+                application_settings
+            )
+        )
+
+        message["Subject"] = (
+            "Automation Platform - Test Email"
+        )
+
+        message.set_content(
+            """
+Congratulations!
+
+Your Automation Platform email configuration
+is working successfully.
+
+If you received this email, your SMTP
+configuration is valid.
+
+Regards,
+Automation Platform
+""".strip()
+        )
+
+        _send_message(
+            message=message,
+            application_settings=application_settings,
+        )
+
+        logger.info(
+            "Test email sent successfully."
+        )
+
+        return True
+
+    except Exception:
+        logger.exception(
+            "Failed to send test email."
         )
 
         return False

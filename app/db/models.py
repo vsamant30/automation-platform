@@ -307,3 +307,80 @@ class AuditLog(Base):
         nullable=False,
         index=True,
     )
+
+class ApplicationSettings(Base):
+    __tablename__ = "application_settings"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    email_notifications_enabled = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    smtp_host = Column(
+        String,
+        nullable=True,
+    )
+
+    smtp_port = Column(
+        Integer,
+        default=587,
+        nullable=False,
+    )
+
+    smtp_username = Column(
+        String,
+        nullable=True,
+    )
+
+    smtp_password = Column(
+        String,
+        nullable=True,
+    )
+
+    smtp_use_tls = Column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+
+    smtp_use_ssl = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    email_from_address = Column(
+        String,
+        nullable=True,
+    )
+
+    email_to_addresses = Column(
+        Text,
+        nullable=True,
+    )
+
+    notify_on_completed = Column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+
+    notify_on_failed = Column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )

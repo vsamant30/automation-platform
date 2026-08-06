@@ -31,12 +31,18 @@ from app.core.auth import (
 from app.db.database import SessionLocal
 
 from app.db.models import (
+    ApplicationSettings,
+
+    AuditLog,
     Job,
     JobExecution,
-    AuditLog,
 )
 
 from app.scheduler.scheduler import sync_job_schedule
+
+from app.services.email_service import (
+    send_test_email,
+)
 
 from app.services.job_execution_service import (
     execute_job_with_history,
@@ -453,6 +459,342 @@ def export_execution_history(
         )
 
         return response
+
+    finally:
+        db.close()
+
+@router.get("/settings")
+def application_settings_page(request: Request):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        application_settings = (
+            db.query(ApplicationSettings)
+            .order_by(ApplicationSettings.id)
+            .first()
+        )
+
+        if application_settings is None:
+            application_settings = ApplicationSettings(
+                email_notifications_enabled=False,
+                smtp_port=587,
+                smtp_use_tls=True,
+                smtp_use_ssl=False,
+                notify_on_completed=True,
+                notify_on_failed=True,
+            )
+
+            db.add(application_settings)
+            db.commit()
+            db.refresh(application_settings)
+
+        return templates.TemplateResponse(
+            request=request,
+            name="settings.html",
+            context={
+                "request": request,
+                "current_user": current_user,
+                "application_settings": (
+                    application_settings
+                ),
+            },
+        )
+
+    finally:
+        db.close()
+
+@router.post("/settings")
+def save_application_settings(
+    request: Request,
+    email_notifications_enabled: str | None = Form(None),
+    smtp_host: str = Form(""),
+    smtp_port: str = Form("587"),
+    smtp_username: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_use_tls: str | None = Form(None),
+    smtp_use_ssl: str | None = Form(None),
+    email_from_address: str = Form(""),
+    email_to_addresses: str = Form(""),
+    notify_on_completed: str | None = Form(None),
+    notify_on_failed: str | None = Form(None),
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        application_settings = (
+            db.query(ApplicationSettings)
+            .order_by(ApplicationSettings.id)
+            .first()
+        )
+
+        if application_settings is None:
+            application_settings = ApplicationSettings()
+
+            db.add(application_settings)
+            db.flush()
+
+        try:
+            cleaned_smtp_port = int(
+                smtp_port.strip()
+            )
+        except ValueError:
+            return RedirectResponse(
+                url="/settings?error=invalid_port",
+                status_code=303,
+            )
+
+        if not 1 <= cleaned_smtp_port <= 65535:
+            return RedirectResponse(
+                url="/settings?error=invalid_port",
+                status_code=303,
+            )
+
+        use_tls = smtp_use_tls is not None
+        use_ssl = smtp_use_ssl is not None
+
+        if use_tls and use_ssl:
+            return RedirectResponse(
+                url="/settings?error=tls_ssl_conflict",
+                status_code=303,
+            )
+
+        old_value = json.dumps(
+            {
+                "email_notifications_enabled": (
+                    application_settings
+                    .email_notifications_enabled
+                ),
+                "smtp_host": (
+                    application_settings.smtp_host
+                ),
+                "smtp_port": (
+                    application_settings.smtp_port
+                ),
+                "smtp_username": (
+                    application_settings.smtp_username
+                ),
+                "smtp_use_tls": (
+                    application_settings.smtp_use_tls
+                ),
+                "smtp_use_ssl": (
+                    application_settings.smtp_use_ssl
+                ),
+                "email_from_address": (
+                    application_settings
+                    .email_from_address
+                ),
+                "email_to_addresses": (
+                    application_settings
+                    .email_to_addresses
+                ),
+                "notify_on_completed": (
+                    application_settings
+                    .notify_on_completed
+                ),
+                "notify_on_failed": (
+                    application_settings
+                    .notify_on_failed
+                ),
+            },
+            default=str,
+        )
+
+        application_settings.email_notifications_enabled = (
+            email_notifications_enabled is not None
+        )
+
+        application_settings.smtp_host = (
+            smtp_host.strip() or None
+        )
+
+        application_settings.smtp_port = (
+            cleaned_smtp_port
+        )
+
+        application_settings.smtp_username = (
+            smtp_username.strip() or None
+        )
+
+        if smtp_password:
+            application_settings.smtp_password = (
+                smtp_password
+            )
+
+        application_settings.smtp_use_tls = use_tls
+        application_settings.smtp_use_ssl = use_ssl
+
+        application_settings.email_from_address = (
+            email_from_address.strip() or None
+        )
+
+        application_settings.email_to_addresses = (
+            email_to_addresses.strip() or None
+        )
+
+        application_settings.notify_on_completed = (
+            notify_on_completed is not None
+        )
+
+        application_settings.notify_on_failed = (
+            notify_on_failed is not None
+        )
+
+        new_value = json.dumps(
+            {
+                "email_notifications_enabled": (
+                    application_settings
+                    .email_notifications_enabled
+                ),
+                "smtp_host": (
+                    application_settings.smtp_host
+                ),
+                "smtp_port": (
+                    application_settings.smtp_port
+                ),
+                "smtp_username": (
+                    application_settings.smtp_username
+                ),
+                "smtp_use_tls": (
+                    application_settings.smtp_use_tls
+                ),
+                "smtp_use_ssl": (
+                    application_settings.smtp_use_ssl
+                ),
+                "email_from_address": (
+                    application_settings
+                    .email_from_address
+                ),
+                "email_to_addresses": (
+                    application_settings
+                    .email_to_addresses
+                ),
+                "notify_on_completed": (
+                    application_settings
+                    .notify_on_completed
+                ),
+                "notify_on_failed": (
+                    application_settings
+                    .notify_on_failed
+                ),
+            },
+            default=str,
+        )
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="UPDATE_APPLICATION_SETTINGS",
+            entity_type="ApplicationSettings",
+            entity_id=application_settings.id,
+            old_value=old_value,
+            new_value=new_value,
+        )
+
+        db.commit()
+
+        return RedirectResponse(
+            url="/settings?saved=true",
+            status_code=303,
+        )
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post("/settings/test-email")
+def test_application_email(request: Request):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        email_sent = send_test_email()
+
+        log_audit_event(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            action="TEST_EMAIL",
+            entity_type="ApplicationSettings",
+            entity_id=None,
+            old_value=None,
+            new_value=(
+                "Test email sent successfully."
+                if email_sent
+                else "Test email failed."
+            ),
+        )
+
+        db.commit()
+
+        if email_sent:
+            return RedirectResponse(
+                url="/settings?test_email=success",
+                status_code=303,
+            )
+
+        return RedirectResponse(
+            url="/settings?test_email=failed",
+            status_code=303,
+        )
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+
+        return RedirectResponse(
+            url="/settings?test_email=failed",
+            status_code=303,
+        )
 
     finally:
         db.close()
