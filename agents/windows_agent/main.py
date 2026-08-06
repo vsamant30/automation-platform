@@ -7,6 +7,8 @@ from agents.windows_agent.config import (
     load_agent_settings,
 )
 from agents.windows_agent.platform_client import (
+    claim_next_job,
+    mark_job_running,
     send_heartbeat,
 )
 
@@ -61,6 +63,62 @@ def run_heartbeat_once(
         return False
 
 
+def process_next_job_once(
+    settings: WindowsAgentSettings,
+) -> bool:
+    """
+    Claim one queued job and mark it as running.
+
+    Return False when no queued job is available
+    or when processing fails.
+    """
+
+    try:
+        agent_job = claim_next_job(settings)
+
+        if agent_job is None:
+            logger.info(
+                "No queued remote job is available. "
+                "Agent ID: %s",
+                settings.agent_id,
+            )
+
+            return False
+
+        agent_job_id = agent_job["id"]
+
+        logger.info(
+            "Remote job claimed. "
+            "Agent Job ID: %s, Job ID: %s, Job Name: %s",
+            agent_job_id,
+            agent_job["job_id"],
+            agent_job["job_name"],
+        )
+
+        running_job = mark_job_running(
+            settings=settings,
+            agent_job_id=agent_job_id,
+        )
+
+        logger.info(
+            "Remote job marked as running. "
+            "Agent Job ID: %s, Status: %s",
+            running_job["id"],
+            running_job["status"],
+        )
+
+        return True
+
+    except Exception:
+        logger.exception(
+            "Remote job processing failed. "
+            "Agent ID: %s",
+            settings.agent_id,
+        )
+
+        return False
+
+
 def run_agent(
     settings: WindowsAgentSettings,
 ) -> None:
@@ -80,6 +138,8 @@ def run_agent(
 
     while True:
         run_heartbeat_once(settings)
+
+        process_next_job_once(settings)
 
         time.sleep(
             settings.heartbeat_interval_seconds

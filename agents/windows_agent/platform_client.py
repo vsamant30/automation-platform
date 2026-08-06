@@ -134,3 +134,161 @@ def send_heartbeat(
             "hostname": settings.hostname,
         },
     )
+
+
+def claim_next_job(
+    settings: WindowsAgentSettings,
+) -> dict | None:
+    """
+    Ask the Automation Platform for the oldest
+    queued job assigned to this agent.
+    """
+
+    if settings.agent_id is None:
+        raise ValueError(
+            "AUTOMATION_AGENT_ID is not configured."
+        )
+
+    if not settings.authentication_token:
+        raise ValueError(
+            "AUTOMATION_AGENT_TOKEN is not configured."
+        )
+
+    claim_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/agent-jobs"
+        f"/agents/{settings.agent_id}/claim"
+    )
+
+    response = _send_json_request(
+        url=claim_url,
+        method="POST",
+        settings=settings,
+    )
+
+    if not response.get("success", False):
+        raise RuntimeError(
+            response.get(
+                "message",
+                "Unable to claim agent job.",
+            )
+        )
+
+    return response.get("data")
+
+def mark_job_running(
+    settings: WindowsAgentSettings,
+    agent_job_id: int,
+) -> dict:
+    """
+    Notify the Automation Platform that
+    the agent has started executing a job.
+    """
+
+    running_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/agent-jobs"
+        f"/{agent_job_id}/running"
+    )
+
+    response = _send_json_request(
+        url=running_url,
+        method="POST",
+        settings=settings,
+        payload={
+            "agent_id": settings.agent_id,
+        },
+    )
+
+    if not response.get("success", False):
+        raise RuntimeError(
+            response.get(
+                "message",
+                "Unable to mark job as running.",
+            )
+        )
+
+    return response.get("data")
+
+
+def complete_job(
+    settings: WindowsAgentSettings,
+    agent_job_id: int,
+    result: str | None = None,
+) -> dict:
+    """
+    Notify the Automation Platform that
+    the job completed successfully.
+    """
+
+    complete_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/agent-jobs"
+        f"/{agent_job_id}/complete"
+    )
+
+    response = _send_json_request(
+        url=complete_url,
+        method="POST",
+        settings=settings,
+        payload={
+            "agent_id": settings.agent_id,
+            "result": result,
+        },
+    )
+
+    if not response.get("success", False):
+        raise RuntimeError(
+            response.get(
+                "message",
+                "Unable to complete job.",
+            )
+        )
+
+    return response.get("data")
+
+
+def fail_job(
+    settings: WindowsAgentSettings,
+    agent_job_id: int,
+    error_message: str,
+    result: str | None = None,
+) -> dict:
+    """
+    Notify the Automation Platform that
+    the job failed.
+    """
+
+    cleaned_error_message = error_message.strip()
+
+    if not cleaned_error_message:
+        raise ValueError(
+            "Error message is required."
+        )
+
+    fail_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/agent-jobs"
+        f"/{agent_job_id}/fail"
+    )
+
+    response = _send_json_request(
+        url=fail_url,
+        method="POST",
+        settings=settings,
+        payload={
+            "agent_id": settings.agent_id,
+            "error_message": cleaned_error_message,
+            "result": result,
+        },
+    )
+
+    if not response.get("success", False):
+        raise RuntimeError(
+            response.get(
+                "message",
+                "Unable to mark job as failed.",
+            )
+        )
+
+    return response.get("data")
