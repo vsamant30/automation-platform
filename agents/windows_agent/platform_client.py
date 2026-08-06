@@ -403,3 +403,60 @@ def download_job_script(
         raise RuntimeError(
             "Job script download timed out."
         ) from error
+
+
+
+def append_job_log(
+    settings: WindowsAgentSettings,
+    *,
+    agent_job_id: int,
+    stream: str,
+    message: str,
+) -> dict:
+    """
+    Send one live log line to the Automation Platform.
+    """
+
+    if agent_job_id <= 0:
+        raise ValueError(
+            "Agent Job ID must be greater than zero."
+        )
+
+    cleaned_stream = stream.strip().lower()
+    cleaned_message = message.rstrip()
+
+    if not cleaned_stream:
+        raise ValueError(
+            "Log stream is required."
+        )
+
+    if not cleaned_message:
+        raise ValueError(
+            "Log message is required."
+        )
+
+    log_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/agent-jobs"
+        f"/{agent_job_id}/logs"
+    )
+
+    response = _send_json_request(
+        url=log_url,
+        method="POST",
+        settings=settings,
+        payload={
+            "stream": cleaned_stream,
+            "message": cleaned_message,
+        },
+    )
+
+    if not response.get("success", False):
+        raise RuntimeError(
+            response.get(
+                "message",
+                "Unable to append agent job log.",
+            )
+        )
+
+    return response.get("data")

@@ -13,6 +13,7 @@ from agents.windows_agent.executor import (
 )
 
 from agents.windows_agent.platform_client import (
+    append_job_log,
     claim_next_job,
     complete_job,
     download_job_script,
@@ -72,11 +73,46 @@ def run_heartbeat_once(
         return False
 
 
+def append_job_log_safely(
+    settings: WindowsAgentSettings,
+    *,
+    agent_job_id: int,
+    stream: str,
+    message: str,
+) -> None:
+    """
+    Send a remote job log without interrupting
+    the job if log delivery fails.
+    """
+
+    cleaned_message = message.rstrip()
+
+    if not cleaned_message:
+        return
+
+    try:
+        append_job_log(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream=stream,
+            message=cleaned_message,
+        )
+
+    except Exception:
+        logger.exception(
+            "Unable to send live job log. "
+            "Agent Job ID: %s, Stream: %s",
+            agent_job_id,
+            stream,
+        )
+
+
 def process_next_job_once(
     settings: WindowsAgentSettings,
 ) -> bool:
     """
-    Claim, download, and execute one queued remote job.
+    Claim, download, execute, and report one
+    queued remote job.
 
     Return False when no queued job is available
     or when processing fails.
@@ -107,6 +143,17 @@ def process_next_job_once(
             agent_job["job_name"],
         )
 
+        append_job_log_safely(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream="system",
+            message=(
+                "Remote job claimed by agent. "
+                f"Job ID: {agent_job['job_id']}, "
+                f"Job Name: {agent_job['job_name']}"
+            ),
+        )
+
         running_job = mark_job_running(
             settings=settings,
             agent_job_id=agent_job_id,
@@ -117,6 +164,13 @@ def process_next_job_once(
             "Agent Job ID: %s, Status: %s",
             running_job["id"],
             running_job["status"],
+        )
+
+        append_job_log_safely(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream="system",
+            message="Remote job marked as Running.",
         )
 
         download_directory = os.path.join(
@@ -139,12 +193,60 @@ def process_next_job_once(
             downloaded_script_path,
         )
 
+        append_job_log_safely(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream="system",
+            message=(
+                "Remote job script downloaded successfully. "
+                f"Local file: "
+                f"{os.path.basename(downloaded_script_path)}"
+            ),
+        )
+
+        append_job_log_safely(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream="system",
+            message=(
+                "Starting script execution. "
+                f"Script type: {agent_job['script_type']}"
+            ),
+        )
+
         execution_result = execute_script(
             script_type=agent_job["script_type"],
             script_path=downloaded_script_path,
         )
 
+        if execution_result.output:
+            append_job_log_safely(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                stream="stdout",
+                message=execution_result.output,
+            )
+
+        if execution_result.error:
+            append_job_log_safely(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                stream="stderr",
+                message=execution_result.error,
+            )
+
         if execution_result.success:
+            append_job_log_safely(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                stream="system",
+                message=(
+                    "Script execution completed successfully. "
+                    f"Return code: "
+                    f"{execution_result.return_code}"
+                ),
+            )
+
             completed_job = complete_job(
                 settings=settings,
                 agent_job_id=agent_job_id,
@@ -161,16 +263,28 @@ def process_next_job_once(
 
             return True
 
+        failure_message = (
+            execution_result.error
+            or (
+                "Script execution failed with "
+                f"return code {execution_result.return_code}."
+            )
+        )
+
+        append_job_log_safely(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            stream="system",
+            message=(
+                "Script execution failed. "
+                f"Return code: {execution_result.return_code}"
+            ),
+        )
+
         failed_job = fail_job(
             settings=settings,
             agent_job_id=agent_job_id,
-            error_message=(
-                execution_result.error
-                or (
-                    "Script execution failed with "
-                    f"return code {execution_result.return_code}."
-                )
-            ),
+            error_message=failure_message,
             result=execution_result.output,
         )
 
@@ -186,6 +300,16 @@ def process_next_job_once(
 
     except Exception as error:
         if agent_job_id is not None:
+            append_job_log_safely(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                stream="stderr",
+                message=(
+                    "Remote job processing failed: "
+                    f"{error}"
+                ),
+            )
+
             try:
                 fail_job(
                     settings=settings,
@@ -222,12 +346,25 @@ def process_next_job_once(
                     downloaded_script_path,
                 )
 
+                if agent_job_id is not None:
+                    append_job_log_safely(
+                        settings=settings,
+                        agent_job_id=agent_job_id,
+                        stream="system",
+                        message=(
+                            "Downloaded temporary script "
+                            "was removed."
+                        ),
+                    )
+
             except OSError:
                 logger.exception(
                     "Unable to remove downloaded script. "
                     "Path: %s",
                     downloaded_script_path,
                 )
+
+
 
 
 def run_agent(
