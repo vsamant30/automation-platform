@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from app.api.auth import router as auth_router
 from app.api.auth_v1 import router as auth_v1_router
 from app.api.agents_v1 import router as agents_v1_router
+from app.api.agent_jobs_v1 import router as agent_jobs_v1_router
 from app.api.jobs import router as jobs_router
 from app.api.jobs_v1 import router as jobs_v1_router
 from app.api.pages import router as pages_router
@@ -82,6 +83,13 @@ OPENAPI_TAGS = [
         "description": (
             "Register, retrieve, update, and remove "
             "remote execution agents."
+        ),
+    },
+    {
+        "name": "API v1 - Agent Jobs",
+        "description": (
+            "Queue, claim, run, complete, and fail "
+            "remote execution jobs."
         ),
     },
     {
@@ -1044,6 +1052,12 @@ app.include_router(
     agents_v1_router,
     prefix="/api/v1/agents",
     tags=["API v1 - Agents"],
+)
+
+app.include_router(
+    agent_jobs_v1_router,
+    prefix="/api/v1/agent-jobs",
+    tags=["API v1 - Agent Jobs"],
 )
 
 app.include_router(
