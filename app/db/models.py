@@ -456,3 +456,100 @@ class Agent(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+
+
+class AgentJob(Base):
+    __tablename__ = "agent_jobs"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    agent_id = Column(
+        Integer,
+        ForeignKey("agents.id"),
+        nullable=False,
+        index=True,
+    )
+
+    job_id = Column(
+        Integer,
+        ForeignKey("jobs.id"),
+        nullable=False,
+        index=True,
+    )
+
+    job_execution_id = Column(
+        Integer,
+        ForeignKey("job_executions.id"),
+        nullable=True,
+        index=True,
+    )
+
+    job_name = Column(
+        String,
+        nullable=False,
+    )
+
+    script_type = Column(
+        String,
+        nullable=False,
+    )
+
+    script_path = Column(
+        String,
+        nullable=False,
+    )
+
+    status = Column(
+        String,
+        default="Queued",
+        nullable=False,
+        index=True,
+    )
+
+    result = Column(
+        Text,
+        nullable=True,
+    )
+
+    error_message = Column(
+        Text,
+        nullable=True,
+    )
+
+    queued_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    claimed_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    started_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    completed_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
