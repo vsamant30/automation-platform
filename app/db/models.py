@@ -553,3 +553,46 @@ class AgentJob(Base):
         onupdate=datetime.utcnow,
         nullable=False,
     )
+
+
+
+class AgentJobLog(Base):
+    __tablename__ = "agent_job_logs"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+    agent_job_id = Column(
+        Integer,
+        ForeignKey("agent_jobs.id"),
+        nullable=False,
+        index=True,
+    )
+
+    stream = Column(
+        String,
+        default="stdout",
+        nullable=False,
+        index=True,
+    )
+
+    message = Column(
+        Text,
+        nullable=False,
+    )
+
+    sequence = Column(
+        Integer,
+        nullable=False,
+        index=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True,
+    )
