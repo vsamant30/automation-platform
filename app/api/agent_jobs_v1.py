@@ -11,6 +11,17 @@ from app.schemas.agent_job import (
     AgentJobResponse,
     AgentJobRunningRequest,
 )
+
+from app.schemas.agent_job_log import (
+    AgentJobLogCreate,
+    AgentJobLogResponse,
+)
+
+from app.services.agent_job_log_service import (
+    append_agent_job_log,
+    get_agent_job_logs,
+)
+
 from app.schemas.api_response import ApiResponse
 from app.services.agent_job_service import (
     claim_next_agent_job,
@@ -266,4 +277,62 @@ def fail_agent_job_v1(
         success=True,
         message="Agent job marked as failed.",
         data=agent_job,
+    )
+
+
+
+@router.post(
+    "/{agent_job_id}/logs",
+    response_model=ApiResponse[AgentJobLogResponse],
+    status_code=201,
+)
+def append_agent_job_log_v1(
+    agent_job_id: int,
+    log_data: AgentJobLogCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Append one live log line to a remote job.
+    """
+
+    try:
+        log = append_agent_job_log(
+            agent_job_id=agent_job_id,
+            stream=log_data.stream,
+            message=log_data.message,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    return ApiResponse(
+        success=True,
+        message="Agent job log appended successfully.",
+        data=log,
+    )
+
+
+@router.get(
+    "/{agent_job_id}/logs",
+    response_model=ApiResponse[list[AgentJobLogResponse]],
+)
+def get_agent_job_logs_v1(
+    agent_job_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return live log lines for one remote job.
+    """
+
+    logs = get_agent_job_logs(
+        agent_job_id
+    )
+
+    return ApiResponse(
+        success=True,
+        message="Agent job logs retrieved successfully.",
+        data=logs,
     )
