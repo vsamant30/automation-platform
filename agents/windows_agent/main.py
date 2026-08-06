@@ -214,26 +214,24 @@ def process_next_job_once(
             ),
         )
 
+        def stream_output(
+            stream: str,
+            message: str,
+        ) -> None:
+            append_job_log_safely(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                stream=stream,
+                message=message,
+            )
+
+
         execution_result = execute_script(
             script_type=agent_job["script_type"],
             script_path=downloaded_script_path,
+            on_output=stream_output,
         )
 
-        if execution_result.output:
-            append_job_log_safely(
-                settings=settings,
-                agent_job_id=agent_job_id,
-                stream="stdout",
-                message=execution_result.output,
-            )
-
-        if execution_result.error:
-            append_job_log_safely(
-                settings=settings,
-                agent_job_id=agent_job_id,
-                stream="stderr",
-                message=execution_result.error,
-            )
 
         if execution_result.success:
             append_job_log_safely(
