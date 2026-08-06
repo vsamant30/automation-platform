@@ -1,4 +1,5 @@
 import json
+import os
 
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -292,3 +293,113 @@ def fail_job(
         )
 
     return response.get("data")
+
+
+def download_job_script(
+    settings: WindowsAgentSettings,
+    *,
+    job_id: int,
+    destination_directory: str,
+) -> str:
+    """
+    Download one job script from the platform
+    and return its saved local path.
+    """
+
+    if job_id <= 0:
+        raise ValueError(
+            "Job ID must be greater than zero."
+        )
+
+    cleaned_destination_directory = (
+        destination_directory.strip()
+    )
+
+    if not cleaned_destination_directory:
+        raise ValueError(
+            "Destination directory is required."
+        )
+
+    os.makedirs(
+        cleaned_destination_directory,
+        exist_ok=True,
+    )
+
+    download_url = (
+        f"{settings.platform_url}"
+        f"/api/v1/jobs/{job_id}/script"
+    )
+
+    request = Request(
+        url=download_url,
+        headers=_build_headers(settings),
+        method="GET",
+    )
+
+    try:
+        with urlopen(
+            request,
+            timeout=settings.request_timeout_seconds,
+        ) as response:
+            content_disposition = response.headers.get(
+                "Content-Disposition",
+                "",
+            )
+
+            filename = ""
+
+            if "filename=" in content_disposition:
+                filename = (
+                    content_disposition
+                    .split("filename=", 1)[1]
+                    .strip()
+                    .strip('"')
+                )
+
+            if not filename:
+                filename = (
+                    f"job_{job_id}_script"
+                )
+
+            safe_filename = os.path.basename(
+                filename
+            )
+
+            destination_path = os.path.join(
+                cleaned_destination_directory,
+                safe_filename,
+            )
+
+            with open(
+                destination_path,
+                "wb",
+            ) as destination_file:
+                destination_file.write(
+                    response.read()
+                )
+
+            return destination_path
+
+    except HTTPError as error:
+        error_body = (
+            error.read()
+            .decode("utf-8", errors="replace")
+            .strip()
+        )
+
+        raise RuntimeError(
+            "Job script download failed. "
+            f"HTTP status: {error.code}. "
+            f"Response: {error_body or '-'}"
+        ) from error
+
+    except URLError as error:
+        raise RuntimeError(
+            "Unable to connect to the Automation Platform. "
+            f"Reason: {error.reason}"
+        ) from error
+
+    except TimeoutError as error:
+        raise RuntimeError(
+            "Job script download timed out."
+        ) from error

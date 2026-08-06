@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import time
 
@@ -14,6 +15,7 @@ from agents.windows_agent.executor import (
 from agents.windows_agent.platform_client import (
     claim_next_job,
     complete_job,
+    download_job_script,
     fail_job,
     mark_job_running,
     send_heartbeat,
@@ -74,13 +76,14 @@ def process_next_job_once(
     settings: WindowsAgentSettings,
 ) -> bool:
     """
-    Claim and execute one queued remote job.
+    Claim, download, and execute one queued remote job.
 
     Return False when no queued job is available
     or when processing fails.
     """
 
     agent_job_id = None
+    downloaded_script_path = None
 
     try:
         agent_job = claim_next_job(settings)
@@ -116,9 +119,29 @@ def process_next_job_once(
             running_job["status"],
         )
 
+        download_directory = os.path.join(
+            "agents",
+            "windows_agent",
+            "downloads",
+            f"agent_job_{agent_job_id}",
+        )
+
+        downloaded_script_path = download_job_script(
+            settings=settings,
+            job_id=agent_job["job_id"],
+            destination_directory=download_directory,
+        )
+
+        logger.info(
+            "Remote job script downloaded. "
+            "Agent Job ID: %s, Local Path: %s",
+            agent_job_id,
+            downloaded_script_path,
+        )
+
         execution_result = execute_script(
             script_type=agent_job["script_type"],
-            script_path=agent_job["script_path"],
+            script_path=downloaded_script_path,
         )
 
         if execution_result.success:
@@ -184,6 +207,27 @@ def process_next_job_once(
         )
 
         return False
+
+    finally:
+        if (
+            downloaded_script_path
+            and os.path.isfile(downloaded_script_path)
+        ):
+            try:
+                os.remove(downloaded_script_path)
+
+                logger.info(
+                    "Downloaded script removed. "
+                    "Path: %s",
+                    downloaded_script_path,
+                )
+
+            except OSError:
+                logger.exception(
+                    "Unable to remove downloaded script. "
+                    "Path: %s",
+                    downloaded_script_path,
+                )
 
 
 def run_agent(
