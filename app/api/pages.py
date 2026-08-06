@@ -54,7 +54,9 @@ from app.services.execution_logger import (
 
 
 
-router = APIRouter()
+router = APIRouter(
+    include_in_schema=False,
+)
 
 templates = Jinja2Templates(
     directory="app/templates"

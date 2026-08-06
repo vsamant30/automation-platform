@@ -2,106 +2,183 @@ import json
 import os
 import shutil
 
-from app.services.job_name_validator import validate_job_name
-
-from fastapi import HTTPException
-
 from datetime import datetime
+from uuid import uuid4
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    RedirectResponse,
+)
 from fastapi.staticfiles import StaticFiles
-from fastapi.requests import Request
-from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.api.jobs import router as jobs_router
-from app.api.jobs_v1 import router as jobs_v1_router
 from app.api.auth import router as auth_router
 from app.api.auth_v1 import router as auth_v1_router
+from app.api.jobs import router as jobs_router
+from app.api.jobs_v1 import router as jobs_v1_router
 from app.api.pages import router as pages_router
+from app.api.users import router as users_router
+from app.api.users_v1 import router as users_v1_router
 
 from app.core.auth import (
     create_access_token,
     get_current_user_from_cookie,
     require_admin,
 )
-
+from app.core.exceptions import (
+    generic_exception_handler,
+    validation_exception_handler,
+)
 from app.core.security import verify_password
-from app.db.database import engine
-from app.db.models import Base
 
-from app.db.database import SessionLocal
-from app.db.models import Job, JobExecution, User
-
-from app.api.users import router as users_router
-
-from app.api.users_v1 import router as users_v1_router
-
-from fastapi import Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from app.db.database import SessionLocal, engine
+from app.db.models import (
+    Base,
+    Job,
+    JobExecution,
+    User,
+)
 
 from app.scheduler.scheduler import (
-    start_scheduler,
-    sync_job_schedule,
     pause_scheduled_job,
     resume_scheduled_job,
+    start_scheduler,
+    sync_job_schedule,
 )
-
-from fastapi.exceptions import RequestValidationError
-
-from app.core.exceptions import (
-    validation_exception_handler,
-    generic_exception_handler,
-)
-
-from app.services.execution_logger import get_execution_log_path
-
-from app.services.job_execution_service import execute_job_with_history
 
 from app.services.audit_service import log_audit_event
+from app.services.execution_logger import (
+    get_execution_log_path,
+)
+from app.services.job_execution_service import (
+    execute_job_with_history,
+)
+from app.services.job_name_validator import (
+    validate_job_name,
+)
 
 
-from fastapi import FastAPI, Request, Form, HTTPException
-
-from uuid import uuid4
+OPENAPI_TAGS = [
+    {
+        "name": "API v1 - Authentication",
+        "description": (
+            "Authenticate API clients, generate JWT access "
+            "tokens, and retrieve the authenticated profile."
+        ),
+    },
+    {
+        "name": "API v1 - Jobs",
+        "description": (
+            "Create, view, validate, execute, and control "
+            "automation jobs through the versioned REST API."
+        ),
+    },
+    {
+        "name": "API v1 - Users",
+        "description": (
+            "Administer platform users and role-based access."
+        ),
+    },
+    {
+        "name": "Legacy Authentication API",
+        "description": (
+            "Unversioned authentication endpoints retained "
+            "for backward compatibility."
+        ),
+    },
+    {
+        "name": "Legacy Jobs API",
+        "description": (
+            "Unversioned job endpoints retained for backward "
+            "compatibility."
+        ),
+    },
+    {
+        "name": "Legacy Users API",
+        "description": (
+            "Unversioned user endpoints retained for backward "
+            "compatibility."
+        ),
+    },
+    {
+        "name": "System",
+        "description": (
+            "Basic platform status and health-check endpoints."
+        ),
+    },
+]
 
 app = FastAPI(
     title="Automation Platform API",
+    summary=(
+        "Enterprise automation orchestration and "
+        "job-management API."
+    ),
     description="""
-Enterprise Automation Platform
+# Automation Platform API
 
-## Features
+The Automation Platform provides browser-based administration
+and versioned REST APIs for managing and executing automation
+jobs.
 
-- JWT Authentication
-- RBAC Authorization
-- Job Scheduling
-- Manual Job Execution
-- Retry Failed Jobs
-- Audit Logs
-- Execution History
-- REST API Versioning
+## Core capabilities
+
+- JWT bearer authentication
+- Role-based access control
+- Job creation and execution
+- Scheduling and pause/resume controls
+- Dependency and conditional workflow support
+- Execution history and downloadable logs
+- Audit logging
+- Configurable email notifications
+- Versioned REST endpoints
 
 ## Authentication
 
-Use:
+Protected REST endpoints require a JWT access token.
 
-Authorization: Bearer <JWT Token>
+1. Call `POST /api/v1/auth/login`.
+2. Copy the returned access token.
+3. Select **Authorize** in Swagger.
+4. Enter the token in the Bearer authentication field.
 
-for all protected endpoints.
+Swagger normally adds the `Bearer` prefix automatically when
+using its authorization dialog.
 
-## API Versions
+## Recommended API version
 
-- Legacy APIs
-- Versioned APIs (/api/v1)
+New integrations should use endpoints under `/api/v1`.
+
+Unversioned endpoints remain available only for backward
+compatibility.
 """,
     version="2.0.0",
     contact={
         "name": "Vinayak Samant",
     },
+    openapi_tags=OPENAPI_TAGS,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "filter": True,
+        "displayRequestDuration": True,
+        "docExpansion": "none",
+        "defaultModelsExpandDepth": 1,
+        "defaultModelExpandDepth": 1,
+        "tryItOutEnabled": True,
+    },
 )
 
 app.add_exception_handler(
@@ -125,7 +202,10 @@ def startup_event():
     start_scheduler()
     
     
-@app.post("/login-page")
+@app.post(
+    "/login-page",
+    include_in_schema=False,
+)
 async def browser_login(
     request: Request,
     username: str = Form(...),
@@ -194,7 +274,10 @@ async def browser_login(
         db.close()
       
 
-@app.get("/logout")
+@app.get(
+    "/logout",
+    include_in_schema=False,
+)
 def logout():
     response = RedirectResponse(
         url="/login-page",
@@ -209,7 +292,10 @@ def logout():
     return response
 
             
-@app.get("/executions/{execution_id}/download")
+@app.get(
+    "/executions/{execution_id}/download",
+    include_in_schema=False,
+)
 def download_execution_log(execution_id: int):
     db = SessionLocal()
 
@@ -245,7 +331,10 @@ def download_execution_log(execution_id: int):
 
         
             
-@app.post("/upload-script")
+@app.post(
+    "/upload-script",
+    include_in_schema=False,
+)
 def upload_script(
     request: Request,
     job_name: str = Form(...),
@@ -419,7 +508,10 @@ def upload_script(
 
 
 
-@app.post("/dashboard/jobs/create")
+@app.post(
+    "/dashboard/jobs/create",
+    include_in_schema=False,
+)
 def create_job_from_dashboard(
     request: Request,
     job_name: str = Form(...),
@@ -487,7 +579,10 @@ def create_job_from_dashboard(
     finally:
         db.close()
 
-@app.post("/dashboard/jobs/{job_id}/run")
+@app.post(
+    "/dashboard/jobs/{job_id}/run",
+    include_in_schema=False,
+)
 def run_job_from_dashboard(
     request: Request,
     job_id: int,
@@ -546,7 +641,10 @@ def run_job_from_dashboard(
     finally:
         db.close()        
 
-@app.post("/dashboard/jobs/{job_id}/pause")
+@app.post(
+    "/dashboard/jobs/{job_id}/pause",
+    include_in_schema=False,
+)
 def pause_job_schedule(
     request: Request,
     job_id: int,
@@ -607,7 +705,10 @@ def pause_job_schedule(
     finally:
         db.close()
 
-@app.post("/dashboard/jobs/{job_id}/resume")
+@app.post(
+    "/dashboard/jobs/{job_id}/resume",
+    include_in_schema=False,
+)
 def resume_job_schedule(
     request: Request,
     job_id: int,
@@ -668,7 +769,10 @@ def resume_job_schedule(
     finally:
         db.close()
 
-@app.post("/executions/{execution_id}/retry")
+@app.post(
+    "/executions/{execution_id}/retry",
+    include_in_schema=False,
+)
 def retry_execution(
     request: Request,
     execution_id: int,
@@ -737,7 +841,10 @@ def retry_execution(
     finally:
         db.close()
 
-@app.post("/dashboard/jobs/{job_id}/duplicate")
+@app.post(
+    "/dashboard/jobs/{job_id}/duplicate",
+    include_in_schema=False,
+)
 def duplicate_job(
     request: Request,
     job_id: int,
@@ -810,7 +917,10 @@ def duplicate_job(
 
 
 
-@app.post("/dashboard/jobs/{job_id}/delete")
+@app.post(
+    "/dashboard/jobs/{job_id}/delete",
+    include_in_schema=False,
+)
 def delete_job(
     request: Request,
     job_id: int,
@@ -874,7 +984,11 @@ def delete_job(
         
 
 
-@app.get("/")
+@app.get(
+    "/",
+    tags=["System"],
+    summary="Platform status",
+)
 def root():
     return {
         "status": "success",
@@ -882,7 +996,11 @@ def root():
     }
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["System"],
+    summary="Platform health check",
+)
 def health_check():
     return {
         "status": "healthy",
@@ -929,6 +1047,5 @@ app.include_router(
 # Browser pages must remain unversioned.
 app.include_router(
     pages_router,
-    tags=["Browser Pages"],
 )
 
