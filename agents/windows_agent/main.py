@@ -6,8 +6,15 @@ from agents.windows_agent.config import (
     WindowsAgentSettings,
     load_agent_settings,
 )
+
+from agents.windows_agent.executor import (
+    execute_script,
+)
+
 from agents.windows_agent.platform_client import (
     claim_next_job,
+    complete_job,
+    fail_job,
     mark_job_running,
     send_heartbeat,
 )
@@ -67,11 +74,13 @@ def process_next_job_once(
     settings: WindowsAgentSettings,
 ) -> bool:
     """
-    Claim one queued job and mark it as running.
+    Claim and execute one queued remote job.
 
     Return False when no queued job is available
     or when processing fails.
     """
+
+    agent_job_id = None
 
     try:
         agent_job = claim_next_job(settings)
@@ -107,9 +116,67 @@ def process_next_job_once(
             running_job["status"],
         )
 
-        return True
+        execution_result = execute_script(
+            script_type=agent_job["script_type"],
+            script_path=agent_job["script_path"],
+        )
 
-    except Exception:
+        if execution_result.success:
+            completed_job = complete_job(
+                settings=settings,
+                agent_job_id=agent_job_id,
+                result=execution_result.output,
+            )
+
+            logger.info(
+                "Remote job completed successfully. "
+                "Agent Job ID: %s, Status: %s, Return Code: %s",
+                completed_job["id"],
+                completed_job["status"],
+                execution_result.return_code,
+            )
+
+            return True
+
+        failed_job = fail_job(
+            settings=settings,
+            agent_job_id=agent_job_id,
+            error_message=(
+                execution_result.error
+                or (
+                    "Script execution failed with "
+                    f"return code {execution_result.return_code}."
+                )
+            ),
+            result=execution_result.output,
+        )
+
+        logger.error(
+            "Remote job failed. "
+            "Agent Job ID: %s, Status: %s, Return Code: %s",
+            failed_job["id"],
+            failed_job["status"],
+            execution_result.return_code,
+        )
+
+        return False
+
+    except Exception as error:
+        if agent_job_id is not None:
+            try:
+                fail_job(
+                    settings=settings,
+                    agent_job_id=agent_job_id,
+                    error_message=str(error),
+                )
+
+            except Exception:
+                logger.exception(
+                    "Unable to report remote job failure. "
+                    "Agent Job ID: %s",
+                    agent_job_id,
+                )
+
         logger.exception(
             "Remote job processing failed. "
             "Agent ID: %s",
