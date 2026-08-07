@@ -6,6 +6,7 @@ from pathlib import Path
 
 
 CRYPTPROTECT_UI_FORBIDDEN = 0x01
+CRYPTPROTECT_LOCAL_MACHINE = 0x04
 
 DEFAULT_SECRET_DIRECTORY = Path(
     os.getenv(
@@ -55,7 +56,7 @@ def protect_secret(
 ) -> bytes:
     """
     Encrypt a secret using Windows DPAPI
-    for the current Windows user.
+    for the local Windows machine.
     """
 
     cleaned_plaintext = plaintext.strip()
@@ -81,7 +82,10 @@ def protect_secret(
         None,
         None,
         None,
-        CRYPTPROTECT_UI_FORBIDDEN,
+        (
+            CRYPTPROTECT_UI_FORBIDDEN
+            | CRYPTPROTECT_LOCAL_MACHINE
+        ),
         ctypes.byref(output_blob),
     )
 
@@ -102,13 +106,12 @@ def protect_secret(
             output_blob.pbData
         )
 
-
 def unprotect_secret(
     encrypted_value: bytes,
 ) -> str:
     """
     Decrypt a Windows DPAPI-protected secret
-    for the current Windows user.
+    on the local Windows machine.
     """
 
     if not encrypted_value:

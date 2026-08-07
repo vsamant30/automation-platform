@@ -363,13 +363,16 @@ def process_next_job_once(
                 )
 
 
-
-
 def run_agent(
     settings: WindowsAgentSettings,
+    stop_event=None,
 ) -> None:
     """
-    Run the Windows Agent heartbeat loop.
+    Run the Windows Agent heartbeat and job-processing loop.
+
+    When stop_event is provided, stop gracefully when
+    the event is set. CLI execution can continue without
+    providing a stop event.
     """
 
     logger.info(
@@ -382,14 +385,28 @@ def run_agent(
         settings.heartbeat_interval_seconds,
     )
 
-    while True:
+    while (
+        stop_event is None
+        or not stop_event.is_set()
+    ):
         run_heartbeat_once(settings)
 
         process_next_job_once(settings)
 
-        time.sleep(
-            settings.heartbeat_interval_seconds
-        )
+        if stop_event is None:
+            time.sleep(
+                settings.heartbeat_interval_seconds
+            )
+
+        else:
+            if stop_event.wait(
+                settings.heartbeat_interval_seconds
+            ):
+                break
+
+    logger.info(
+        "Windows Agent loop stopped gracefully."
+    )
 
 
 def main() -> int:
