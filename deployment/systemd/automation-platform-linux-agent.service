@@ -1,0 +1,23 @@
+[Unit]
+Description=Automation Platform Linux Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=automation-agent
+Group=automation-agent
+
+WorkingDirectory=/opt/automation-platform
+EnvironmentFile=/etc/automation-platform/linux-agent.env
+
+ExecStart=/opt/automation-platform/.venv/bin/python -m agents.linux_agent.main
+
+Restart=on-failure
+RestartSec=5
+
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

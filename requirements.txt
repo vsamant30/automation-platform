@@ -19,7 +19,7 @@ MarkupSafe==3.0.3
 passlib==1.7.4
 pyasn1==0.6.4
 pycparser==3.0
-pywin32==312
+pywin32==312; sys_platform == "win32"
 pydantic==2.13.4
 pydantic_core==2.46.4
 python-jose==3.5.0
