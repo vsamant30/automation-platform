@@ -3,6 +3,10 @@ import socket
 
 from dataclasses import dataclass
 
+from agents.windows_agent.secret_store import (
+    load_agent_api_key,
+)
+
 
 DEFAULT_PLATFORM_URL = "http://127.0.0.1:8000"
 DEFAULT_HEARTBEAT_INTERVAL_SECONDS = 60
@@ -136,9 +140,14 @@ def load_agent_settings() -> WindowsAgentSettings:
     ).strip()
 
     if not api_key:
-        raise ValueError(
-            "AUTOMATION_AGENT_API_KEY is required."
-        )
+        try:
+            api_key = load_agent_api_key()
+
+        except FileNotFoundError as error:
+            raise ValueError(
+                "AUTOMATION_AGENT_API_KEY is not configured "
+                "and no protected Agent API key was found."
+            ) from error
 
     heartbeat_interval_seconds = (
         _get_positive_integer(
