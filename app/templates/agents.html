@@ -146,8 +146,79 @@ Remote Agents
         </div>
     </div>
 
+<div class="agent-queue-card">
+
+    <h2>Queue Remote Job</h2>
+
+<form
+    id="queueRemoteJobForm"
+    class="agent-queue-form"
+    action="/agents/queue"
+    method="post"
+>
+
+        <div class="form-group">
+
+            <label for="agentSelect">
+                Agent
+            </label>
+
+<select
+    id="agentSelect"
+    name="agent_id"
+    required
+>
+
+                {% for agent in agents %}
+
+                <option value="{{ agent.id }}">
+                    {{ agent.name }}
+                    ({{ agent.hostname }})
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label for="jobSelect">
+                Job
+            </label>
+
+<select
+    id="jobSelect"
+    name="job_id"
+    required
+>
+    {% for job in jobs %}
+    <option value="{{ job.id }}">
+        {{ job.name }} ({{ job.script_type }})
+    </option>
+    {% else %}
+    <option value="" disabled selected>
+        No enabled jobs are available.
+    </option>
+    {% endfor %}
+</select>
+        </div>
+
+        <button
+            type="submit"
+            class="btn btn-primary"
+        >
+            Queue Job
+        </button>
+
+    </form>
+
+</div>
+
     <div class="card shadow-sm">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
+
             <h2 class="h5 mb-0">Remote Job Queue</h2>
 
             <span class="text-muted small">
@@ -172,8 +243,18 @@ Remote Agents
                     </thead>
 
                     <tbody>
+
                         {% for agent_job in agent_jobs %}
-                        <tr>
+<tr
+    style="
+        cursor:pointer;
+        {% if selected_agent_job and selected_agent_job.id == agent_job.id %}
+        background-color:#dbeafe;
+        font-weight:600;
+        {% endif %}
+    "
+    onclick="window.location='/agents?agent_job_id={{ agent_job.id }}';"
+>
                             <td>{{ agent_job.id }}</td>
                             <td>{{ agent_job.agent_id }}</td>
                             <td>
@@ -330,15 +411,13 @@ async function refreshLogs() {
         return;
     }
 
-    const match = window.location.pathname.match(
-        /\/agents\/(\d+)/
-    );
+const params = new URLSearchParams(window.location.search);
 
-    if (!match) {
-        return;
-    }
+const agentJobId = params.get("agent_job_id");
 
-    const agentJobId = match[1];
+if (!agentJobId) {
+    return;
+}
 
     try {
 
@@ -404,6 +483,8 @@ async function refreshLogs() {
     }
 
 }
+
+
 
 setInterval(
     refreshLogs,

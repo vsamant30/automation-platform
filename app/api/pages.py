@@ -3,7 +3,9 @@ from app.services.job_name_validator import validate_job_name
 from app.services.agent_service import get_agents
 
 from app.services.agent_job_service import (
+    get_agent_job,
     get_agent_jobs,
+    queue_job_for_agent,
 )
 
 from app.services.agent_job_log_service import (
@@ -1579,7 +1581,10 @@ def retry_job(
 
 
 @router.get("/agents")
-def agents_page(request: Request):
+def agents_page(
+    request: Request,
+    agent_job_id: int | None = Query(None),
+):
     db = SessionLocal()
 
     try:
@@ -1597,14 +1602,24 @@ def agents_page(request: Request):
         require_admin(current_user)
 
         agents = get_agents()
-
         agent_jobs = get_agent_jobs()
 
-        selected_agent_job = (
-            agent_jobs[0]
-            if agent_jobs
-            else None
+        jobs = (
+            db.query(Job)
+            .filter(Job.is_enabled == True)
+            .order_by(Job.name.asc())
+            .all()
         )
+
+        selected_agent_job = None
+
+        if agent_job_id is not None:
+            selected_agent_job = get_agent_job(
+                agent_job_id
+            )
+
+        elif agent_jobs:
+            selected_agent_job = agent_jobs[0]
 
         agent_job_logs = (
             get_agent_job_logs(selected_agent_job.id)
@@ -1619,10 +1634,57 @@ def agents_page(request: Request):
                 "request": request,
                 "current_user": current_user,
                 "agents": agents,
+                "jobs": jobs,
                 "agent_jobs": agent_jobs,
                 "selected_agent_job": selected_agent_job,
                 "agent_job_logs": agent_job_logs,
             },
+        )
+
+    finally:
+        db.close()
+
+
+@router.post("/agents/queue")
+def queue_agent_job_page(
+    request: Request,
+    agent_id: int = Form(...),
+    job_id: int = Form(...),
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        try:
+            agent_job = queue_job_for_agent(
+                agent_id=agent_id,
+                job_id=job_id,
+            )
+
+        except ValueError:
+            return RedirectResponse(
+                url="/agents",
+                status_code=303,
+            )
+
+        return RedirectResponse(
+            url=(
+                "/agents?agent_job_id="
+                f"{agent_job.id}"
+            ),
+            status_code=303,
         )
 
     finally:
