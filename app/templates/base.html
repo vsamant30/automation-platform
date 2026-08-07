@@ -94,6 +94,18 @@
 
 {% endif %}
 
+{% if current_user.role|lower == "admin" %}
+
+<a
+    href="/agents"
+    class="sidebar-link {% if request.url.path == '/agents' %}active{% endif %}"
+>
+    <span class="sidebar-icon">🖥️</span>
+    <span>Remote Agents</span>
+</a>
+
+{% endif %}
+
     </nav>
 
     <div class="sidebar-footer">
