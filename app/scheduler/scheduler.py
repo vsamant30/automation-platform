@@ -11,6 +11,10 @@ from app.services.job_runner import execute_job
 
 from app.services.execution_logger import write_execution_log
 
+from app.services.agent_service import (
+    mark_stale_agents_offline,
+)
+
 from app.services.agent_job_service import (
     mark_stale_agent_jobs_failed,
 )
@@ -467,6 +471,27 @@ def recover_stale_remote_jobs() -> None:
         )
 
 
+def mark_offline_agents() -> None:
+    """
+    Mark agents Offline when their heartbeat
+    has not been received recently.
+    """
+
+    try:
+        updated = mark_stale_agents_offline()
+
+        if updated:
+            logger.warning(
+                "Marked %s stale agent(s) Offline.",
+                updated,
+            )
+
+    except Exception:
+        logger.exception(
+            "Failed to mark stale agents Offline."
+        )
+
+
 def start_scheduler() -> None:
     """Start APScheduler and restore saved schedules."""
 
@@ -485,4 +510,15 @@ def start_scheduler() -> None:
 
     logger.info(
         "Stale remote job recovery scheduled."
+    )
+
+    scheduler.add_job(
+        mark_offline_agents,
+        trigger=IntervalTrigger(minutes=1),
+        id="mark_offline_agents",
+        replace_existing=True,
+    )
+
+    logger.info(
+        "Stale agent offline detection scheduled."
     )
