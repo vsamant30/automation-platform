@@ -1645,6 +1645,52 @@ def agents_page(
         db.close()
 
 
+@router.get("/agents/status")
+def agents_status_page(
+    request: Request,
+):
+    """
+    Return current Remote Agent status information
+    for the server-rendered Agents page.
+    """
+
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required.",
+            )
+
+        require_admin(current_user)
+
+        agents = get_agents()
+
+        return {
+            "success": True,
+            "data": [
+                {
+                    "id": agent.id,
+                    "name": agent.name,
+                    "hostname": agent.hostname,
+                    "status": agent.status,
+                    "is_enabled": agent.is_enabled,
+                    "last_seen_at": agent.last_seen_at,
+                }
+                for agent in agents
+            ],
+        }
+
+    finally:
+        db.close()
+
+
 @router.post("/agents/queue")
 def queue_agent_job_page(
     request: Request,

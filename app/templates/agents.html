@@ -34,15 +34,19 @@ Remote Agents
         <div class="col-md-3">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="text-muted small">Online Agents</div>
-                    <div class="fs-3 fw-semibold text-success">
-                        {{
-                            agents
-                            | selectattr("status", "equalto", "Online")
-                            | list
-                            | length
-                        }}
-                    </div>
+<div class="text-muted small">Online Agents</div>
+<div
+    id="onlineAgentCount"
+    class="fs-3 fw-semibold text-success"
+>
+    {{
+        agents
+        | selectattr("status", "equalto", "Online")
+        | list
+        | length
+    }}
+</div>
+
                 </div>
             </div>
         </div>
@@ -102,23 +106,20 @@ Remote Agents
 
                     <tbody>
                         {% for agent in agents %}
-                        <tr>
-                            <td>{{ agent.id }}</td>
-                            <td class="fw-semibold">{{ agent.name }}</td>
-                            <td>{{ agent.hostname or "-" }}</td>
-                            <td>{{ agent.platform }}</td>
-                            <td>
-                                {% if agent.status == "Online" %}
-                                <span class="badge bg-success">
-                                    Online
-                                </span>
-                                {% else %}
-                                <span class="badge bg-secondary">
-                                    {{ agent.status }}
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td>
+<tr>
+    <td>{{ agent.id }}</td>
+    <td class="fw-semibold">{{ agent.name }}</td>
+    <td>{{ agent.hostname or "-" }}</td>
+    <td>{{ agent.platform }}</td>
+    <td>
+        <span
+            id="agent-status-{{ agent.id }}"
+            class="badge {% if agent.status == 'Online' %}bg-success{% else %}bg-secondary{% endif %}"
+        >
+            {{ agent.status }}
+        </span>
+    </td>
+                                <td>
                                 {% if agent.is_enabled %}
                                 <span class="badge bg-success">
                                     Enabled
@@ -129,9 +130,9 @@ Remote Agents
                                 </span>
                                 {% endif %}
                             </td>
-                            <td>
-                                {{ agent.last_seen_at or "-" }}
-                            </td>
+<td id="agent-last-seen-{{ agent.id }}">
+    {{ agent.last_seen_at or "-" }}
+</td>
                         </tr>
                         {% else %}
                         <tr>
@@ -384,6 +385,94 @@ Remote Agents
 
 let lastLogCount = 0;
 
+
+async function refreshAgentStatuses() {
+
+    try {
+
+        const response = await fetch(
+            "/agents/status"
+        );
+
+        if (!response.ok) {
+            return;
+        }
+
+        const payload = await response.json();
+
+        if (!payload.success) {
+            return;
+        }
+
+        const onlineAgentCount = payload.data.filter(
+            agent => agent.status === "Online"
+        ).length;
+
+        const onlineAgentCountElement = document.getElementById(
+            "onlineAgentCount"
+        );
+
+        if (onlineAgentCountElement) {
+            onlineAgentCountElement.textContent = onlineAgentCount;
+        }
+
+        for (const agent of payload.data) {
+
+            const statusBadge = document.getElementById(
+                `agent-status-${agent.id}`
+            );
+
+            const lastSeenElement = document.getElementById(
+                `agent-last-seen-${agent.id}`
+            );
+
+            if (lastSeenElement) {
+
+                lastSeenElement.textContent = (
+                    agent.last_seen_at
+                        ? agent.last_seen_at.replace("T", " ")
+                        : "-"
+                );
+
+            }
+
+            if (!statusBadge) {
+                continue;
+            }
+
+            statusBadge.textContent = agent.status;
+
+            statusBadge.classList.remove(
+                "bg-success",
+                "bg-secondary",
+                "bg-danger"
+            );
+
+            if (agent.status === "Online") {
+
+                statusBadge.classList.add(
+                    "bg-success"
+                );
+
+            }
+            else {
+
+                statusBadge.classList.add(
+                    "bg-secondary"
+                );
+
+            }
+
+        }
+
+    }
+    catch {
+
+    }
+
+}
+
+
 async function refreshLogs() {
 
     const viewer = document.getElementById(
@@ -475,6 +564,13 @@ setInterval(
     refreshLogs,
     2000
 );
+
+setInterval(
+    refreshAgentStatuses,
+    5000
+);
+
+refreshAgentStatuses();
 
 </script>
 
