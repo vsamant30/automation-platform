@@ -345,41 +345,24 @@ Remote Agents
                 overflow-y: auto;
                 font-family: Consolas, monospace;
                 font-size: 13px;
-                white-space: pre-wrap;
+                white-space: normal;
             "
         >
-            {% for log in agent_job_logs %}
+{% for log in agent_job_logs %}
+    {% if log.stream == "stderr" %}
+    <div style="color: #fca5a5; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
+    {% elif log.stream == "stdout" %}
+    <div style="color: #86efac; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
+    {% else %}
+    <div style="color: #93c5fd; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
+    {% endif %}
+{% else %}
+    <div style="color: #9ca3af;">
+        No logs are available for this remote job.
+    </div>
+{% endfor %}
 
-                {% if log.stream == "stderr" %}
-                <div style="color: #fca5a5;">
-                {% elif log.stream == "stdout" %}
-                <div style="color: #86efac;">
-                {% else %}
-                <div style="color: #93c5fd;">
-                {% endif %}
-
-                    <span>
-                        [{{ log.sequence }}]
-                    </span>
-
-                    <span>
-                        [{{ log.stream | upper }}]
-                    </span>
-
-                    <span>
-                        {{ log.message }}
-                    </span>
-
-                </div>
-
-            {% else %}
-
-                <div style="color: #9ca3af;">
-                    No logs are available for this remote job.
-                </div>
-
-            {% endfor %}
-        </div>
+</div>
 
     </div>
 
@@ -448,6 +431,8 @@ if (!agentJobId) {
         for (const log of logs) {
 
             const line = document.createElement("div");
+
+            line.style.whiteSpace = "pre-wrap";
 
             if (log.stream === "stderr") {
 
