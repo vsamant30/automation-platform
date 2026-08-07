@@ -1,6 +1,15 @@
 from datetime import datetime, timedelta
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import (
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+)
+
+from app.services.agent_service import (
+    verify_agent_credentials,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -67,6 +76,56 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def get_authenticated_agent_id(
+    x_agent_id: str | None = Header(
+        default=None,
+        alias="X-Agent-ID",
+    ),
+    x_agent_api_key: str | None = Header(
+        default=None,
+        alias="X-Agent-API-Key",
+    ),
+) -> int:
+    """
+    Authenticate one Remote Agent using
+    its dedicated API key.
+    """
+
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Invalid Agent credentials.",
+    )
+
+    if (
+        not x_agent_id
+        or not x_agent_api_key
+    ):
+        raise credentials_exception
+
+    try:
+        agent_id = int(
+            x_agent_id.strip()
+        )
+
+    except (
+        AttributeError,
+        TypeError,
+        ValueError,
+    ):
+        raise credentials_exception
+
+    if agent_id <= 0:
+        raise credentials_exception
+
+    if not verify_agent_credentials(
+        agent_id,
+        x_agent_api_key,
+    ):
+        raise credentials_exception
+
+    return agent_id
 
 
 def get_current_user_from_cookie(

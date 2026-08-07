@@ -25,10 +25,18 @@ def _build_headers(
         ),
     }
 
-    if settings.authentication_token:
-        headers["Authorization"] = (
-            f"Bearer {settings.authentication_token}"
+    if settings.agent_id is None:
+        raise ValueError(
+            "AUTOMATION_AGENT_ID is not configured."
         )
+
+    if not settings.api_key:
+        raise ValueError(
+            "AUTOMATION_AGENT_API_KEY is not configured."
+        )
+
+    headers["X-Agent-ID"] = str(settings.agent_id)
+    headers["X-Agent-API-Key"] = settings.api_key
 
     return headers
 
@@ -116,9 +124,9 @@ def send_heartbeat(
             "AUTOMATION_AGENT_ID is not configured."
         )
 
-    if not settings.authentication_token:
+    if not settings.api_key:
         raise ValueError(
-            "AUTOMATION_AGENT_TOKEN is not configured."
+            "AUTOMATION_AGENT_API_KEY is not configured."
         )
 
     heartbeat_url = (
@@ -150,9 +158,9 @@ def claim_next_job(
             "AUTOMATION_AGENT_ID is not configured."
         )
 
-    if not settings.authentication_token:
+    if not settings.api_key:
         raise ValueError(
-            "AUTOMATION_AGENT_TOKEN is not configured."
+            "AUTOMATION_AGENT_API_KEY is not configured."
         )
 
     claim_url = (

@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.auth import get_current_user
+from app.core.auth import (
+    get_authenticated_agent_id,
+    get_current_user,
+)
 from app.core.permissions import require_admin
 from app.db.models import User
 from app.schemas.agent_job import (
@@ -121,9 +124,15 @@ def queue_agent_job_v1(
 )
 def claim_agent_job_v1(
     agent_id: int,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
-    require_admin(current_user)
+    if authenticated_agent_id != agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent ID does not match authenticated Agent.",
+        )
 
     try:
         agent_job = claim_next_agent_job(
@@ -164,9 +173,15 @@ def claim_agent_job_v1(
 def mark_agent_job_running_v1(
     agent_job_id: int,
     request_data: AgentJobRunningRequest,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
-    require_admin(current_user)
+    if authenticated_agent_id != request_data.agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent ID does not match authenticated Agent.",
+        )
 
     try:
         agent_job = mark_agent_job_running(
@@ -204,9 +219,15 @@ def mark_agent_job_running_v1(
 def complete_agent_job_v1(
     agent_job_id: int,
     request_data: AgentJobCompleteRequest,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
-    require_admin(current_user)
+    if authenticated_agent_id != request_data.agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent ID does not match authenticated Agent.",
+        )
 
     try:
         agent_job = complete_agent_job(
@@ -245,9 +266,15 @@ def complete_agent_job_v1(
 def fail_agent_job_v1(
     agent_job_id: int,
     request_data: AgentJobFailRequest,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
-    require_admin(current_user)
+    if authenticated_agent_id != request_data.agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent ID does not match authenticated Agent.",
+        )
 
     try:
         agent_job = fail_agent_job(
@@ -280,20 +307,41 @@ def fail_agent_job_v1(
     )
 
 
-
 @router.post(
     "/{agent_job_id}/logs",
     response_model=ApiResponse[AgentJobLogResponse],
     status_code=201,
 )
+
 def append_agent_job_log_v1(
     agent_job_id: int,
     log_data: AgentJobLogCreate,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
     """
     Append one live log line to a remote job.
     """
+
+    agent_job = get_agent_job(
+        agent_job_id
+    )
+
+    if agent_job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Agent job not found.",
+        )
+
+    if agent_job.agent_id != authenticated_agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Agent job does not belong to "
+                "the authenticated Agent."
+            ),
+        )
 
     try:
         log = append_agent_job_log(
@@ -313,7 +361,6 @@ def append_agent_job_log_v1(
         message="Agent job log appended successfully.",
         data=log,
     )
-
 
 @router.get(
     "/{agent_job_id}/logs",

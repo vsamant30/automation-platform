@@ -407,9 +407,9 @@ def main() -> int:
                 "AUTOMATION_AGENT_ID is not configured."
             )
 
-        if not settings.authentication_token:
+        if not settings.api_key:
             raise ValueError(
-                "AUTOMATION_AGENT_TOKEN is not configured."
+                "AUTOMATION_AGENT_API_KEY is not configured."
             )
 
         run_agent(settings)

@@ -1,4 +1,11 @@
 from datetime import datetime
+
+from app.core.security import (
+    generate_agent_api_key,
+    hash_agent_api_key,
+    verify_agent_api_key,
+)
+
 from app.db.database import SessionLocal
 from app.db.models import Agent
 
@@ -406,6 +413,84 @@ def mark_stale_agents_offline(
     except Exception:
         db.rollback()
         raise
+
+    finally:
+        db.close()
+
+
+def rotate_agent_api_key(
+    agent_id: int,
+) -> str:
+    """
+    Generate a new API key for an agent.
+
+    Only the hash is stored in the database.
+    The plaintext API key is returned once.
+    """
+
+    db = SessionLocal()
+
+    try:
+        agent = (
+            db.query(Agent)
+            .filter(Agent.id == agent_id)
+            .first()
+        )
+
+        if agent is None:
+            raise ValueError(
+                f"Agent not found: {agent_id}"
+            )
+
+        api_key = generate_agent_api_key()
+
+        agent.api_key_hash = hash_agent_api_key(
+            api_key
+        )
+
+        db.commit()
+
+        return api_key
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+def verify_agent_credentials(
+    agent_id: int,
+    api_key: str,
+) -> bool:
+    """
+    Verify an enabled agent using its API key.
+    """
+
+    if not api_key or not api_key.strip():
+        return False
+
+    db = SessionLocal()
+
+    try:
+        agent = (
+            db.query(Agent)
+            .filter(Agent.id == agent_id)
+            .first()
+        )
+
+        if (
+            agent is None
+            or not agent.is_enabled
+            or not agent.api_key_hash
+        ):
+            return False
+
+        return verify_agent_api_key(
+            api_key,
+            agent.api_key_hash,
+        )
 
     finally:
         db.close()

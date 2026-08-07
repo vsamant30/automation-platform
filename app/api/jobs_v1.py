@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import (
+    get_authenticated_agent_id,
+    get_current_user,
+)
 from app.core.permissions import require_admin
 from app.db.database import get_db
-from app.db.models import Job, User
+from app.db.models import AgentJob, Job, User
 from app.schemas.api_response import ApiResponse
 from app.schemas.job import JobCreate, JobResponse
 from app.services.audit_service import log_audit_event
@@ -331,10 +334,13 @@ def check_job_name_v1(
 def download_job_script_v1(
     job_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
     """
-    Download the uploaded script belonging to one job.
+    Download the uploaded script belonging to one job
+    assigned to the authenticated Remote Agent.
     """
 
     job = (
@@ -353,6 +359,28 @@ def download_job_script_v1(
         raise HTTPException(
             status_code=400,
             detail="Job is disabled.",
+        )
+
+    agent_job = (
+        db.query(AgentJob)
+        .filter(
+            AgentJob.agent_id == authenticated_agent_id,
+            AgentJob.job_id == job_id,
+            AgentJob.status.in_(
+                ["Claimed", "Running"]
+            ),
+        )
+        .order_by(AgentJob.id.desc())
+        .first()
+    )
+
+    if agent_job is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Job is not assigned to the "
+                "authenticated Agent."
+            ),
         )
 
     configured_script_path = (

@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.auth import get_current_user
+from app.core.auth import (
+    get_authenticated_agent_id,
+    get_current_user,
+)
 from app.core.permissions import require_admin
 from app.db.models import User
 from app.schemas.agent import (
@@ -149,9 +152,15 @@ def update_agent_v1(
 def heartbeat_agent_v1(
     agent_id: int,
     heartbeat_data: AgentHeartbeat,
-    current_user: User = Depends(get_current_user),
+    authenticated_agent_id: int = Depends(
+        get_authenticated_agent_id
+    ),
 ):
-    require_admin(current_user)
+    if authenticated_agent_id != agent_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Agent ID does not match authenticated Agent.",
+        )
 
     try:
         agent = record_agent_heartbeat(

@@ -88,7 +88,7 @@ class WindowsAgentSettings:
     agent_id: int | None
     agent_name: str
     hostname: str
-    authentication_token: str
+    api_key: str
     heartbeat_interval_seconds: int
     request_timeout_seconds: int
 
@@ -130,10 +130,15 @@ def load_agent_settings() -> WindowsAgentSettings:
             "AUTOMATION_AGENT_NAME is required."
         )
 
-    authentication_token = os.getenv(
-        "AUTOMATION_AGENT_TOKEN",
+    api_key = os.getenv(
+        "AUTOMATION_AGENT_API_KEY",
         "",
     ).strip()
+
+    if not api_key:
+        raise ValueError(
+            "AUTOMATION_AGENT_API_KEY is required."
+        )
 
     heartbeat_interval_seconds = (
         _get_positive_integer(
@@ -154,7 +159,7 @@ def load_agent_settings() -> WindowsAgentSettings:
         agent_id=agent_id,
         agent_name=agent_name,
         hostname=hostname,
-        authentication_token=authentication_token,
+        api_key=api_key,
         heartbeat_interval_seconds=(
             heartbeat_interval_seconds
         ),
