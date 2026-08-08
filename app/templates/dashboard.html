@@ -419,6 +419,38 @@ Dashboard
 
 </div>
 
+<section class="recent-activity-section">
+
+    <div class="recent-activity-header">
+
+        <div>
+            <h2>Recent Activity</h2>
+
+            <p>
+                Latest automation job execution activity.
+            </p>
+        </div>
+
+        <span
+            id="recentActivityCount"
+            class="recent-activity-count"
+        >
+            0 Executions
+        </span>
+
+    </div>
+
+    <div
+        id="recentActivityList"
+        class="recent-activity-list"
+    >
+        <div class="recent-activity-empty">
+            Loading recent activity...
+        </div>
+    </div>
+
+</section>
+
 <div class="jobs-toolbar">
 
         <select
@@ -860,6 +892,12 @@ const workflowContainer =
 
 const refreshWorkflowButton =
     document.getElementById("refreshWorkflowButton");
+
+const recentActivityList =
+    document.getElementById("recentActivityList");
+
+const recentActivityCount =
+    document.getElementById("recentActivityCount");
 
 function saveDashboardFilters() {
     const filters = {
@@ -1622,6 +1660,91 @@ function updateLastRefreshTime() {
 
 const dashboardRefreshInterval = 30000;
 
+function renderRecentActivity(executions) {
+    const recentExecutions = (executions || []).slice(0, 5);
+
+    recentActivityCount.textContent =
+        `${recentExecutions.length} Execution${
+            recentExecutions.length === 1 ? "" : "s"
+        }`;
+
+    recentActivityList.innerHTML = "";
+
+    if (recentExecutions.length === 0) {
+        recentActivityList.innerHTML = `
+            <div class="recent-activity-empty">
+                No recent executions found.
+            </div>
+        `;
+
+        return;
+    }
+
+    recentExecutions.forEach(function (execution) {
+        const item =
+            document.createElement("a");
+
+        item.className =
+            "recent-activity-item";
+
+        item.href =
+            `/executions/${execution.id}/details`;
+
+        const statusClass =
+            getStatusClass(execution.status);
+
+        const duration =
+            execution.duration === null
+                ? "-"
+                : Number(execution.duration).toFixed(4);
+
+        const startedAt =
+            execution.started_at || "-";
+
+        const errorMessage =
+            execution.error_message || "";
+
+        item.innerHTML = `
+            <div class="recent-activity-main">
+
+                <div class="recent-activity-title">
+                    <strong>
+                        ${execution.job_name}
+                    </strong>
+
+                    <span class="status ${statusClass}">
+                        ${execution.status}
+                    </span>
+                </div>
+
+                <div class="recent-activity-meta">
+                    Execution #${execution.id}
+                    · Job #${execution.job_id}
+                    · ${duration} sec
+                    · ${startedAt}
+                </div>
+
+                ${
+                    errorMessage
+                        ? `
+                            <div class="recent-activity-error">
+                                ${errorMessage}
+                            </div>
+                        `
+                        : ""
+                }
+
+            </div>
+
+            <span class="recent-activity-link">
+                View →
+            </span>
+        `;
+
+        recentActivityList.appendChild(item);
+    });
+}
+
 function getStatusClass(status) {
     const normalizedStatus = status
         .trim()
@@ -1758,6 +1881,10 @@ async function refreshDashboard() {
         }
 
         const data = await response.json();
+
+        renderRecentActivity(
+            data.recent_executions
+        );
 
         console.log(data.jobs);
 
@@ -2260,6 +2387,7 @@ window.addEventListener("load", function () {
 
     updateLastRefreshTime();
     loadWorkflow();
+    refreshDashboard();
 
 });
 

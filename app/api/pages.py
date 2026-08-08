@@ -263,8 +263,38 @@ def dashboard_data(request: Request):
 
         statistics = _get_dashboard_statistics(db)
 
+        recent_executions = (
+            db.query(JobExecution)
+            .order_by(JobExecution.id.desc())
+            .limit(10)
+            .all()
+        )
+
         return {
             "statistics": statistics,
+
+            "recent_executions": [
+                {
+                    "id": execution.id,
+                    "job_id": execution.job_id,
+                    "job_name": execution.job_name,
+                    "status": execution.status,
+                    "started_at": (
+                        str(execution.started_at)
+                        if execution.started_at
+                        else ""
+                    ),
+                    "completed_at": (
+                        str(execution.completed_at)
+                        if execution.completed_at
+                        else ""
+                    ),
+                    "duration": execution.duration,
+                    "error_message": execution.error_message,
+                }
+                for execution in recent_executions
+            ],
+
             "jobs": [
                 {
                     "id": job.id,
