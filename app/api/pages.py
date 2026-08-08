@@ -49,7 +49,10 @@ from app.db.models import (
     JobExecution,
 )
 
-from app.scheduler.scheduler import sync_job_schedule
+from app.scheduler.scheduler import (
+    scheduler,
+    sync_job_schedule,
+)
 
 from app.services.email_service import (
     send_test_email,
@@ -263,6 +266,36 @@ def dashboard_data(request: Request):
 
         statistics = _get_dashboard_statistics(db)
 
+        agents = get_agents()
+
+        online_agents = sum(
+            1
+            for agent in agents
+            if str(agent.status).lower() == "online"
+        )
+
+        scheduler_status = (
+            "Running"
+            if scheduler.running
+            else "Stopped"
+        )
+
+        if scheduler_status == "Running" and (
+            len(agents) == 0 or online_agents == len(agents)
+        ):
+            overall_status = "Healthy"
+        else:
+            overall_status = "Degraded"
+
+        platform_health = {
+            "status": overall_status,
+            "api": "Online",
+            "database": "Connected",
+            "scheduler": scheduler_status,
+            "agents_online": online_agents,
+            "agents_total": len(agents),
+        }
+
         recent_executions = (
             db.query(JobExecution)
             .order_by(JobExecution.id.desc())
@@ -272,6 +305,7 @@ def dashboard_data(request: Request):
 
         return {
             "statistics": statistics,
+            "platform_health": platform_health,
 
             "recent_executions": [
                 {

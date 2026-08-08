@@ -363,6 +363,72 @@ Dashboard
 
 </section>
 
+<section class="platform-health-section">
+
+    <div class="platform-health-header">
+
+        <div>
+            <h2>Platform Health</h2>
+
+            <p>
+                Current operational status of the automation platform.
+            </p>
+        </div>
+
+        <span
+            id="platformHealthOverall"
+            class="platform-health-overall"
+        >
+            Checking...
+        </span>
+
+    </div>
+
+    <div class="platform-health-grid">
+
+        <div class="platform-health-card">
+            <span class="platform-health-label">
+                API
+            </span>
+
+            <strong id="platformHealthApi">
+                --
+            </strong>
+        </div>
+
+        <div class="platform-health-card">
+            <span class="platform-health-label">
+                Database
+            </span>
+
+            <strong id="platformHealthDatabase">
+                --
+            </strong>
+        </div>
+
+        <div class="platform-health-card">
+            <span class="platform-health-label">
+                Scheduler
+            </span>
+
+            <strong id="platformHealthScheduler">
+                --
+            </strong>
+        </div>
+
+        <div class="platform-health-card">
+            <span class="platform-health-label">
+                Agents
+            </span>
+
+            <strong id="platformHealthAgents">
+                --
+            </strong>
+        </div>
+
+    </div>
+
+</section>
 
 <div class="dashboard-insights-row">
 
@@ -1881,6 +1947,38 @@ async function refreshDashboard() {
         }
 
         const data = await response.json();
+
+        const platformHealth =
+            data.platform_health || {};
+
+        document.getElementById(
+            "platformHealthOverall"
+        ).textContent =
+            platformHealth.status || "Unknown";
+
+        document.getElementById(
+            "platformHealthApi"
+        ).textContent =
+            platformHealth.api || "Unknown";
+
+        document.getElementById(
+            "platformHealthDatabase"
+        ).textContent =
+            platformHealth.database || "Unknown";
+
+        document.getElementById(
+            "platformHealthScheduler"
+        ).textContent =
+            platformHealth.scheduler || "Unknown";
+
+        document.getElementById(
+            "platformHealthAgents"
+        ).textContent =
+            `${
+                platformHealth.agents_online ?? 0
+            } / ${
+                platformHealth.agents_total ?? 0
+            } Online`;
 
         renderRecentActivity(
             data.recent_executions

@@ -1607,3 +1607,107 @@ Recent Activity
         flex-direction: column;
     }
 }
+
+/* ===========================
+   Platform Health
+=========================== */
+
+.platform-health-section {
+    margin-bottom: 24px;
+    padding: 22px;
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.platform-health-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.platform-health-header h2 {
+    margin: 0;
+
+    color: #333;
+    font-size: 22px;
+}
+
+.platform-health-header p {
+    margin: 6px 0 0;
+
+    color: #666;
+}
+
+.platform-health-overall {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 90px;
+    padding: 6px 12px;
+
+    color: #047857;
+    background: #d1fae5;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.platform-health-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+
+    gap: 12px;
+}
+
+.platform-health-card {
+    padding: 16px;
+
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+
+.platform-health-label {
+    margin-bottom: 8px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.platform-health-value {
+    color: #1f2937;
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .platform-health-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .platform-health-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .platform-health-grid {
+        grid-template-columns: 1fr;
+    }
+}
