@@ -430,6 +430,81 @@ Dashboard
 
 </section>
 
+<section class="execution-monitor-section">
+
+    <div class="execution-monitor-header">
+
+        <div>
+            <h2>Live Execution Monitor</h2>
+
+            <p>
+                Real-time visibility of currently running and recently failed automation jobs.
+            </p>
+        </div>
+
+        <span
+            id="executionMonitorCount"
+            class="execution-monitor-count"
+        >
+            0 Active
+        </span>
+
+    </div>
+
+    <div class="execution-monitor-grid">
+
+        <div class="execution-monitor-panel">
+
+            <div class="execution-monitor-panel-header">
+                <h3>Running Jobs</h3>
+
+                <span
+                    id="runningExecutionCount"
+                    class="execution-monitor-badge execution-monitor-running"
+                >
+                    0
+                </span>
+            </div>
+
+            <div
+                id="runningExecutionList"
+                class="execution-monitor-list"
+            >
+                <div class="execution-monitor-empty">
+                    No jobs currently running.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="execution-monitor-panel">
+
+            <div class="execution-monitor-panel-header">
+                <h3>Recent Failures</h3>
+
+                <span
+                    id="failedExecutionCount"
+                    class="execution-monitor-badge execution-monitor-failed"
+                >
+                    0
+                </span>
+            </div>
+
+            <div
+                id="failedExecutionList"
+                class="execution-monitor-list"
+            >
+                <div class="execution-monitor-empty">
+                    No recent failures.
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
 <div class="dashboard-insights-row">
 
     <div class="chart-card">
@@ -964,6 +1039,21 @@ const recentActivityList =
 
 const recentActivityCount =
     document.getElementById("recentActivityCount");
+
+const executionMonitorCount =
+    document.getElementById("executionMonitorCount");
+
+const runningExecutionCount =
+    document.getElementById("runningExecutionCount");
+
+const runningExecutionList =
+    document.getElementById("runningExecutionList");
+
+const failedExecutionCount =
+    document.getElementById("failedExecutionCount");
+
+const failedExecutionList =
+    document.getElementById("failedExecutionList");
 
 function saveDashboardFilters() {
     const filters = {
@@ -1726,6 +1816,125 @@ function updateLastRefreshTime() {
 
 const dashboardRefreshInterval = 30000;
 
+function renderExecutionMonitor(executions) {
+    const executionList = executions || [];
+
+    const runningExecutions = executionList.filter(
+        function (execution) {
+            return (
+                String(execution.status).toLowerCase()
+                === "running"
+            );
+        }
+    );
+
+    const failedExecutions = executionList
+        .filter(function (execution) {
+            return (
+                String(execution.status).toLowerCase()
+                === "failed"
+            );
+        })
+        .slice(0, 5);
+
+    executionMonitorCount.textContent =
+        `${runningExecutions.length} Active`;
+
+    runningExecutionCount.textContent =
+        runningExecutions.length;
+
+    failedExecutionCount.textContent =
+        failedExecutions.length;
+
+    runningExecutionList.innerHTML = "";
+
+    if (runningExecutions.length === 0) {
+        runningExecutionList.innerHTML = `
+            <div class="execution-monitor-empty">
+                No jobs currently running.
+            </div>
+        `;
+    }
+    else {
+        runningExecutions.forEach(function (execution) {
+            const item = document.createElement("a");
+
+            item.className =
+                "execution-monitor-item";
+
+            item.href =
+                `/executions/${execution.id}/details`;
+
+            item.innerHTML = `
+                <div>
+                    <strong>
+                        ${execution.job_name}
+                    </strong>
+
+                    <div class="execution-monitor-meta">
+                        Execution #${execution.id}
+                        · Job #${execution.job_id}
+                        · Started ${execution.started_at || "-"}
+                    </div>
+                </div>
+
+                <span class="status status-running">
+                    Running
+                </span>
+            `;
+
+            runningExecutionList.appendChild(item);
+        });
+    }
+
+    failedExecutionList.innerHTML = "";
+
+    if (failedExecutions.length === 0) {
+        failedExecutionList.innerHTML = `
+            <div class="execution-monitor-empty">
+                No recent failures.
+            </div>
+        `;
+    }
+    else {
+        failedExecutions.forEach(function (execution) {
+            const item = document.createElement("a");
+
+            item.className =
+                "execution-monitor-item";
+
+            item.href =
+                `/executions/${execution.id}/details`;
+
+            const errorMessage =
+                execution.error_message || "Execution failed.";
+
+            item.innerHTML = `
+                <div>
+                    <strong>
+                        ${execution.job_name}
+                    </strong>
+
+                    <div class="execution-monitor-meta">
+                        Execution #${execution.id}
+                        · Job #${execution.job_id}
+                    </div>
+
+                    <div class="execution-monitor-error">
+                        ${errorMessage}
+                    </div>
+                </div>
+
+                <span class="status status-failed">
+                    Failed
+                </span>
+            `;
+
+            failedExecutionList.appendChild(item);
+        });
+    }
+}
+
 function renderRecentActivity(executions) {
     const recentExecutions = (executions || []).slice(0, 5);
 
@@ -1979,6 +2188,10 @@ async function refreshDashboard() {
             } / ${
                 platformHealth.agents_total ?? 0
             } Online`;
+
+        renderExecutionMonitor(
+            data.recent_executions
+        );
 
         renderRecentActivity(
             data.recent_executions

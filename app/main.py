@@ -3,6 +3,7 @@ import os
 import shutil
 
 from datetime import datetime
+from threading import Thread
 from uuid import uuid4
 
 from fastapi import (
@@ -595,10 +596,33 @@ def create_job_from_dashboard(
     finally:
         db.close()
 
+def _run_job_in_background(job_id: int):
+    db = SessionLocal()
+
+    try:
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
+
+        if not job:
+            return
+
+        execute_job_with_history(
+            db=db,
+            job=job,
+        )
+
+    finally:
+        db.close()
+
+
 @app.post(
     "/dashboard/jobs/{job_id}/run",
     include_in_schema=False,
 )
+
 def run_job_from_dashboard(
     request: Request,
     job_id: int,
@@ -644,10 +668,13 @@ def run_job_from_dashboard(
             new_value="Running (manual execution)",
         )
 
-        execute_job_with_history(
-            db=db,
-            job=job,
-        )
+        db.commit()
+
+        Thread(
+            target=_run_job_in_background,
+            args=(job.id,),
+            daemon=True,
+        ).start()
 
         return RedirectResponse(
             url="/dashboard",
