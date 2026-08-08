@@ -55,6 +55,21 @@ class Settings:
         ).strip()
     )
 
+    VAULT_ADDR = os.getenv(
+        "VAULT_ADDR",
+        "",
+    ).strip().rstrip("/")
+
+    VAULT_NAMESPACE = os.getenv(
+        "VAULT_NAMESPACE",
+        "",
+    ).strip()
+
+    VAULT_MOUNT_POINT = os.getenv(
+        "VAULT_MOUNT_POINT",
+        "secret",
+    ).strip().strip("/")
+
     EMAIL_NOTIFICATIONS_ENABLED = (
         os.getenv(
             "EMAIL_NOTIFICATIONS_ENABLED",

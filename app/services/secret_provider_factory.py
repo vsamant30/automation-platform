@@ -8,6 +8,10 @@ from app.services.azure_key_vault_provider import (
     create_azure_key_vault_provider,
 )
 
+from app.services.hashicorp_vault_provider import (
+    create_hashicorp_vault_provider,
+)
+
 from app.services.secret_provider import (
     SecretProvider,
     SecretProviderError,
@@ -18,6 +22,7 @@ SUPPORTED_SECRET_PROVIDERS = {
     "local",
     "azure_key_vault",
     "aws_secrets_manager",
+    "hashicorp_vault",
 }
 
 
@@ -33,6 +38,9 @@ def get_secret_provider() -> SecretProvider | None:
 
     aws_secrets_manager:
         AWS Secrets Manager is used.
+
+    hashicorp_vault:
+        HashiCorp Vault KV v2 is used.
     """
 
     provider_name = (
@@ -74,6 +82,27 @@ def get_secret_provider() -> SecretProvider | None:
 
         return create_aws_secrets_manager_provider(
             region_name=settings.AWS_REGION,
+        )
+
+    if provider_name == "hashicorp_vault":
+        if not settings.VAULT_ADDR:
+            raise SecretProviderError(
+                "VAULT_ADDR is required when "
+                "SECRET_PROVIDER is "
+                "hashicorp_vault."
+            )
+
+        if not settings.VAULT_MOUNT_POINT:
+            raise SecretProviderError(
+                "VAULT_MOUNT_POINT is required "
+                "when SECRET_PROVIDER is "
+                "hashicorp_vault."
+            )
+
+        return create_hashicorp_vault_provider(
+            vault_addr=settings.VAULT_ADDR,
+            namespace=settings.VAULT_NAMESPACE,
+            mount_point=settings.VAULT_MOUNT_POINT,
         )
 
     raise SecretProviderError(
