@@ -2497,6 +2497,13 @@ if (urlParams.get("duplicate") === "true") {
     );
 }
 
+if (urlParams.get("already_running") === "true") {
+    showToast(
+        "This job is already running. Please wait for the current execution to finish.",
+        "error"
+    );
+}
+
 if (urlParams.get("duplicated") === "true") {
     showToast("Job duplicated successfully!");
 }

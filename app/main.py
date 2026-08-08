@@ -3,7 +3,7 @@ import os
 import shutil
 
 from datetime import datetime
-from threading import Thread
+from threading import Lock, Thread
 from uuid import uuid4
 
 from fastapi import (
@@ -211,6 +211,9 @@ app.add_exception_handler(
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
+
+_manual_run_lock = Lock()
+_manual_running_job_ids: set[int] = set()
 
 
 @app.on_event("startup")
@@ -617,6 +620,9 @@ def _run_job_in_background(job_id: int):
     finally:
         db.close()
 
+        with _manual_run_lock:
+            _manual_running_job_ids.discard(job_id)
+
 
 @app.post(
     "/dashboard/jobs/{job_id}/run",
@@ -651,30 +657,64 @@ def run_job_from_dashboard(
 
         if not job:
             return RedirectResponse(
-                url="/dashboard",
-                status_code=303,
+            url="/dashboard",
+            status_code=303,
+        )
+
+        running_execution = (
+            db.query(JobExecution)
+            .filter(
+                JobExecution.job_id == job.id,
+                JobExecution.status == "Running",
             )
+            .order_by(JobExecution.id.desc())
+            .first()
+        )
+
+        if running_execution:
+            return RedirectResponse(
+            url="/dashboard?already_running=true",
+            status_code=303,
+        )
+
+        with _manual_run_lock:
+            if job.id in _manual_running_job_ids:
+                return RedirectResponse(
+                    url="/dashboard?already_running=true",
+                    status_code=303,
+                )
+
+            _manual_running_job_ids.add(job.id)
 
         old_status = job.status
 
-        log_audit_event(
-            db=db,
-            user_id=current_user.id,
-            username=current_user.username,
-            action="RUN_JOB",
-            entity_type="Job",
-            entity_id=job.id,
-            old_value=old_status,
-            new_value="Running (manual execution)",
-        )
+        try:
+            log_audit_event(
+                db=db,
+                user_id=current_user.id,
+                username=current_user.username,
+                action="RUN_JOB",
+                entity_type="Job",
+                entity_id=job.id,
+                old_value=old_status,
+                new_value="Running (manual execution)",
+            )
 
-        db.commit()
+            db.commit()
 
-        Thread(
-            target=_run_job_in_background,
-            args=(job.id,),
-            daemon=True,
-        ).start()
+            Thread(
+                target=_run_job_in_background,
+                args=(job.id,),
+                daemon=True,
+            ).start()
+
+        except Exception:
+            db.rollback()
+
+            with _manual_run_lock:
+                _manual_running_job_ids.discard(job.id)
+
+            raise
 
         return RedirectResponse(
             url="/dashboard",
