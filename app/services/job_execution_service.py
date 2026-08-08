@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from threading import Lock
 
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,7 @@ from app.services.email_service import (
 )
 
 from app.services.job_runner import execute_job
+_execution_start_lock = Lock()
 
 
 def _get_dependent_jobs(
@@ -195,6 +197,58 @@ def _get_condition_block_reason(
     )
 
 
+def reserve_job_execution_start(
+    db: Session,
+    job: Job,
+) -> tuple[JobExecution, bool]:
+    """
+    Atomically reserve the start of a job execution
+    within the current application process.
+
+    Return the execution and True when a new
+    reservation is created. Return the existing
+    Running execution and False when the same job
+    is already active.
+    """
+
+    with _execution_start_lock:
+        running_execution = (
+            db.query(JobExecution)
+            .filter(
+                JobExecution.job_id == job.id,
+                JobExecution.status == "Running",
+            )
+            .order_by(JobExecution.id.desc())
+            .first()
+        )
+
+        if running_execution is not None:
+            return running_execution, False
+
+        started_at = datetime.utcnow()
+
+        job.status = "Running"
+        job.started_at = started_at
+        job.completed_at = None
+        job.duration = None
+        job.result = None
+        job.error_message = None
+
+        execution = JobExecution(
+            job_id=job.id,
+            job_name=job.name,
+            status="Running",
+            started_at=started_at,
+        )
+
+        db.add(execution)
+        db.commit()
+
+        db.refresh(job)
+        db.refresh(execution)
+
+        return execution, True
+
 def execute_job_with_history(
     db,
     job: Job,
@@ -265,25 +319,15 @@ def execute_job_with_history(
 
             return execution
 
-        job.status = "Running"
-        job.started_at = started_at
-        job.completed_at = None
-        job.duration = None
-        job.result = None
-        job.error_message = None
-
-        execution = JobExecution(
-            job_id=job.id,
-            job_name=job.name,
-            status="Running",
-            started_at=started_at,
+        execution, reserved = reserve_job_execution_start(
+            db=db,
+            job=job,
         )
 
-        db.add(execution)
-        db.commit()
+        if not reserved:
+            return execution
 
-        db.refresh(job)
-        db.refresh(execution)
+        started_at = execution.started_at
 
         result = execute_job(job)
 

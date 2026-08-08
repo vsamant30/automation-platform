@@ -3,7 +3,9 @@ from app.services.job_name_validator import (
     validate_job_name,
 )
 
-from datetime import datetime
+from app.services.job_execution_service import (
+    execute_job_with_history,
+)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
@@ -18,7 +20,6 @@ from app.core.permissions import require_admin
 from app.db.database import get_db
 from app.db.models import Job, User
 from app.schemas.job import JobCreate, JobResponse
-from app.services.job_runner import execute_job
 from app.services.audit_service import log_audit_event
 
 router = APIRouter()
@@ -89,65 +90,43 @@ def run_job(
 
     if not job.is_enabled:
         raise HTTPException(
-        status_code=400,
-        detail="Job is disabled.",
+            status_code=400,
+            detail="Job is disabled.",
+        )
+
+    old_status = job.status
+
+    log_audit_event(
+        db=db,
+        user_id=current_user.id,
+        username=current_user.username,
+        action="RUN_JOB",
+        entity_type="Job",
+        entity_id=job.id,
+        old_value=old_status,
+        new_value="Running (manual execution)",
     )
 
-    try:
-        old_status = job.status
+    db.commit()
 
-        job.status = "Running"
-        job.started_at = datetime.utcnow()
+    execution = execute_job_with_history(
+        db=db,
+        job=job,
+    )
 
-        log_audit_event(
-            db=db,
-            user_id=current_user.id,
-            username=current_user.username,
-            action="RUN_JOB",
-            entity_type="Job",
-            entity_id=job.id,
-            old_value=old_status,
-            new_value="Running (manual execution)",
-        )
-
-        db.commit()
-
-        result = execute_job(job.name)
-
-        job.status = "Completed"
-        job.result = result
-        job.error_message = None
-        job.completed_at = datetime.utcnow()
-        job.duration = (
-            job.completed_at - job.started_at
-        ).total_seconds()
-
-        db.commit()
-
-        return {
-            "job_id": job.id,
-            "status": job.status,
-            "result": result,
-        }
-
-    except Exception as error:
-        job.status = "Failed"
-        job.result = None
-        job.error_message = str(error)
-        job.completed_at = datetime.utcnow()
-
-        if job.started_at:
-            job.duration = (
-                job.completed_at - job.started_at
-            ).total_seconds()
-
-        db.commit()
-
+    if execution is None:
         raise HTTPException(
             status_code=500,
-            detail=f"Job execution failed: {str(error)}",
+            detail="Job execution could not be created.",
         )
 
+    return {
+        "job_id": job.id,
+        "execution_id": execution.id,
+        "status": execution.status,
+        "result": execution.result,
+        "error_message": execution.error_message,
+    }
 
 
 @router.put("/{job_id}/toggle")

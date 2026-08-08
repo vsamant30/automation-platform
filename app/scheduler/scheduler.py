@@ -6,10 +6,13 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from app.db.database import SessionLocal
-from app.db.models import Job, JobExecution
+from app.db.models import Job
 from app.services.job_runner import execute_job
 
 from app.services.execution_logger import write_execution_log
+from app.services.job_execution_service import (
+    reserve_job_execution_start,
+)
 
 from app.services.agent_service import (
     mark_stale_agents_offline,
@@ -107,27 +110,20 @@ def execute_scheduled_job(job_id: int) -> None:
             )
             return
 
-        started_at = datetime.utcnow()
-
-        job.status = "Running"
-        job.started_at = started_at
-        job.completed_at = None
-        job.duration = None
-        job.result = None
-        job.error_message = None
-
-        execution = JobExecution(
-            job_id=job.id,
-            job_name=job.name,
-            status="Running",
-            started_at=started_at,
+        execution, reserved = reserve_job_execution_start(
+            db=db,
+            job=job,
         )
 
-        db.add(execution)
-        db.commit()
+        if not reserved:
+            logger.info(
+                "Scheduled execution skipped because "
+                "job %s is already running.",
+                job.id,
+            )
+            return
 
-        db.refresh(job)
-        db.refresh(execution)
+        started_at = execution.started_at
 
         logger.info(
             "Automatically executing job: %s",
