@@ -673,7 +673,7 @@ Dashboard
 
 <tr>
     <td
-        colspan="6"
+        colspan="8"
         class="empty-message"
     >
         📋 No jobs found. Create your first automation job to get started.
@@ -1423,10 +1423,10 @@ sortJobDuration.addEventListener("click", function () {
 
     sortableRows.sort(function (firstRow, secondRow) {
         const firstDurationText =
-            firstRow.cells[3].textContent.trim();
+            firstRow.cells[4].textContent.trim();
 
         const secondDurationText =
-            secondRow.cells[3].textContent.trim();
+            secondRow.cells[4].textContent.trim();
 
         const firstDuration =
             firstDurationText === "-"
@@ -1474,10 +1474,10 @@ sortJobCreated.addEventListener("click", function () {
 
     sortableRows.sort(function (firstRow, secondRow) {
         const firstCreatedText =
-            firstRow.cells[4].textContent.trim();
+            firstRow.cells[5].textContent.trim();
 
         const secondCreatedText =
-            secondRow.cells[4].textContent.trim();
+            secondRow.cells[5].textContent.trim();
 
         const firstCreated = new Date(
             firstCreatedText.replace(" ", "T")
