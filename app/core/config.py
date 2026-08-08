@@ -34,6 +34,16 @@ class Settings:
         "sqlite:///automation_platform.db",
     )
 
+    SECRET_PROVIDER = os.getenv(
+        "SECRET_PROVIDER",
+        "local",
+    ).strip().lower()
+
+    AZURE_KEY_VAULT_URL = os.getenv(
+        "AZURE_KEY_VAULT_URL",
+        "",
+    ).strip().rstrip("/")
+
     EMAIL_NOTIFICATIONS_ENABLED = (
         os.getenv(
             "EMAIL_NOTIFICATIONS_ENABLED",

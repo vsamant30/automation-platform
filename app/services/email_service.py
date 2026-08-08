@@ -3,6 +3,14 @@ import smtplib
 
 from email.message import EmailMessage
 
+from app.services.secret_provider import (
+    SecretProviderError,
+)
+
+from app.services.secret_provider_factory import (
+    get_secret_provider,
+)
+
 from app.db.database import SessionLocal
 
 from app.db.models import (
@@ -179,6 +187,37 @@ Error:
     return message
 
 
+def _resolve_smtp_password(
+    application_settings: ApplicationSettings,
+) -> str:
+    """
+    Resolve the SMTP password from the configured
+    secret provider or the local database value.
+    """
+
+    provider = get_secret_provider()
+
+    if provider is None:
+        return (
+            application_settings.smtp_password
+            or ""
+        )
+
+    try:
+        return provider.get_secret(
+            "automation-platform-smtp-password"
+        )
+
+    except SecretProviderError:
+        logger.exception(
+            "SMTP password could not be resolved "
+            "from the configured secret provider."
+        )
+        raise
+
+
+
+
 def _send_message(
     message: EmailMessage,
     application_settings: ApplicationSettings,
@@ -211,9 +250,13 @@ def _send_message(
             smtp_client.ehlo()
 
         if application_settings.smtp_username:
+            smtp_password = _resolve_smtp_password(
+                application_settings
+            )
+
             smtp_client.login(
                 application_settings.smtp_username,
-                application_settings.smtp_password or "",
+                smtp_password,
             )
 
         smtp_client.send_message(message)
