@@ -44,6 +44,17 @@ class Settings:
         "",
     ).strip().rstrip("/")
 
+    AWS_REGION = (
+        os.getenv(
+            "AWS_REGION",
+            "",
+        ).strip()
+        or os.getenv(
+            "AWS_DEFAULT_REGION",
+            "",
+        ).strip()
+    )
+
     EMAIL_NOTIFICATIONS_ENABLED = (
         os.getenv(
             "EMAIL_NOTIFICATIONS_ENABLED",
