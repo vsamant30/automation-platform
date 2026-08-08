@@ -992,6 +992,180 @@ th {
 }
 
 
+/* ===========================
+Agent / Worker Status
+=========================== */
+
+.agent-status-section {
+    margin-bottom: 24px;
+    padding: 22px;
+
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.agent-status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.agent-status-header h2 {
+    margin: 0;
+
+    color: #333;
+    font-size: 22px;
+}
+
+.agent-status-header p {
+    margin: 6px 0 0;
+
+    color: #666;
+}
+
+.agent-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 78px;
+
+    padding: 6px 12px;
+
+    color: #1d4ed8;
+    background: #dbeafe;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.agent-status-grid {
+    display: grid;
+
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(260px, 1fr)
+    );
+
+    gap: 16px;
+}
+
+.agent-status-card {
+    padding: 18px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.agent-status-card:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.09);
+}
+
+.agent-status-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 14px;
+}
+
+.agent-status-card-header > strong {
+    color: #1f2937;
+    font-size: 15px;
+
+    overflow-wrap: anywhere;
+}
+
+.agent-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 5px 10px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.agent-status-online {
+    color: #146c43;
+    background: #d1e7dd;
+}
+
+.agent-status-offline {
+    color: #842029;
+    background: #f8d7da;
+}
+
+.agent-status-details {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.agent-status-details strong {
+    color: #374151;
+    font-weight: 600;
+
+    overflow-wrap: anywhere;
+}
+
+.agent-status-empty {
+    grid-column: 1 / -1;
+
+    padding: 24px;
+
+    color: #666;
+    text-align: center;
+
+    background: #f8fafc;
+
+    border: 1px dashed #d1d5db;
+    border-radius: 10px;
+}
+
+@media (max-width: 700px) {
+    .agent-status-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .agent-status-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 #jobStatusChart {
 

@@ -289,6 +289,81 @@ Dashboard
 
 </div>
 
+
+<section class="agent-status-section">
+
+    <div class="agent-status-header">
+
+        <div>
+            <h2>Agent / Worker Status</h2>
+
+            <p>
+                Current status of registered automation agents.
+            </p>
+        </div>
+
+        <span class="agent-count">
+            {{ agents|length }} Agent{% if agents|length != 1 %}s{% endif %}
+        </span>
+
+    </div>
+
+    <div class="agent-status-grid">
+
+        {% for agent in agents %}
+
+        <div class="agent-status-card">
+
+            <div class="agent-status-card-header">
+
+                <strong>
+                    {{ agent.name }}
+                </strong>
+
+                <span class="
+                    agent-status-badge
+                    {% if agent.status|lower == 'online' %}
+                        agent-status-online
+                    {% else %}
+                        agent-status-offline
+                    {% endif %}
+                ">
+                    {{ agent.status }}
+                </span>
+
+            </div>
+
+<div class="agent-status-details">
+
+    <span>
+        Host:
+        <strong>{{ agent.hostname }}</strong>
+    </span>
+
+    <span>
+        Last Seen:
+        <strong>
+            {{ agent.last_seen_at if agent.last_seen_at else "Never" }}
+        </strong>
+    </span>
+
+</div>
+
+        </div>
+
+        {% else %}
+
+        <div class="agent-status-empty">
+            No automation agents registered.
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</section>
+
+
 <div class="dashboard-insights-row">
 
     <div class="chart-card">

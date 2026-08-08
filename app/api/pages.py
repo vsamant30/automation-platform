@@ -223,6 +223,8 @@ def dashboard(request: Request):
 
         statistics = _get_dashboard_statistics(db)
 
+        agents = get_agents()
+
         return templates.TemplateResponse(
             request=request,
             name="dashboard.html",
@@ -230,6 +232,7 @@ def dashboard(request: Request):
                 "request": request,
                 "current_user": current_user,
                 "jobs": jobs,
+                "agents": agents,
                 **statistics,
             },
         )
