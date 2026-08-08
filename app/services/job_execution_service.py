@@ -15,7 +15,10 @@ from app.services.email_service import (
     send_job_execution_notification,
 )
 
-from app.services.job_runner import execute_job
+from app.services.job_runner import (
+    JobExecutionCancelled,
+    execute_job,
+)
 _execution_start_lock = Lock()
 
 
@@ -329,7 +332,10 @@ def execute_job_with_history(
 
         started_at = execution.started_at
 
-        result = execute_job(job)
+        result = execute_job(
+            job,
+            execution_id=execution.id,
+        )
 
         completed_at = datetime.utcnow()
 
@@ -398,6 +404,41 @@ def execute_job_with_history(
 
                     except RuntimeError:
                         continue
+
+    except JobExecutionCancelled as error:
+        completed_at = datetime.utcnow()
+
+        job.status = "Cancelled"
+        job.result = None
+        job.error_message = str(error)
+        job.completed_at = completed_at
+
+        if job.started_at:
+            job.duration = (
+                completed_at - job.started_at
+            ).total_seconds()
+
+        if execution is not None:
+            execution.status = "Cancelled"
+            execution.result = None
+            execution.error_message = str(error)
+            execution.completed_at = completed_at
+            execution.duration = job.duration
+
+        db.commit()
+
+        if execution is not None:
+            db.refresh(execution)
+
+            write_execution_log(
+                job,
+                execution,
+            )
+
+            send_job_execution_notification(
+                job=job,
+                execution=execution,
+            )
 
     except Exception as error:
         completed_at = datetime.utcnow()

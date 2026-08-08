@@ -7,7 +7,10 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.db.database import SessionLocal
 from app.db.models import Job
-from app.services.job_runner import execute_job
+from app.services.job_runner import (
+    JobExecutionCancelled,
+    execute_job,
+)
 
 from app.services.execution_logger import write_execution_log
 from app.services.job_execution_service import (
@@ -130,7 +133,10 @@ def execute_scheduled_job(job_id: int) -> None:
             job.name,
         )
 
-        result = execute_job(job)
+        result = execute_job(
+            job,
+            execution_id=execution.id,
+        )
 
         completed_at = datetime.utcnow()
         duration = (
@@ -157,6 +163,54 @@ def execute_scheduled_job(job_id: int) -> None:
             "Scheduled job completed successfully: %s",
             job.name,
         )
+    except JobExecutionCancelled as error:
+        db.rollback()
+
+        completed_at = datetime.utcnow()
+
+        try:
+            job = db.query(Job).filter(
+                Job.id == job_id
+            ).first()
+
+            if job:
+                job.status = "Cancelled"
+                job.result = None
+                job.error_message = str(error)
+                job.completed_at = completed_at
+
+                if job.started_at:
+                    job.duration = (
+                        completed_at - job.started_at
+                    ).total_seconds()
+
+            if execution is not None:
+                execution.status = "Cancelled"
+                execution.result = None
+                execution.error_message = str(error)
+                execution.completed_at = completed_at
+
+                if job:
+                    execution.duration = job.duration
+
+            db.commit()
+
+            if execution is not None and job is not None:
+                db.refresh(execution)
+                write_execution_log(job, execution)
+
+        except Exception:
+            db.rollback()
+            logger.exception(
+                "Could not save cancellation details for job %s",
+                job_id,
+            )
+
+        logger.info(
+            "Scheduled job cancelled: %s",
+            job_id,
+        )
+
 
     except Exception as error:
         db.rollback()

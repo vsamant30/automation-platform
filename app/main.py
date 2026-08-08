@@ -66,6 +66,8 @@ from app.services.execution_logger import (
 from app.services.job_execution_service import (
     execute_job_with_history,
 )
+from app.services.job_runner import stop_active_execution
+
 from app.services.job_name_validator import (
     validate_job_name,
 )
@@ -851,6 +853,72 @@ def resume_job_schedule(
 
     finally:
         db.close()
+
+
+
+@app.post(
+    "/executions/{execution_id}/stop",
+    include_in_schema=False,
+)
+def stop_execution(
+    request: Request,
+    execution_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
+        execution = (
+            db.query(JobExecution)
+            .filter(JobExecution.id == execution_id)
+            .first()
+        )
+
+        if not execution:
+            raise HTTPException(
+                status_code=404,
+                detail="Execution not found.",
+            )
+
+        if execution.status != "Running":
+            raise HTTPException(
+                status_code=409,
+                detail="Only a running execution can be stopped.",
+            )
+
+        stop_requested = stop_active_execution(
+            execution.id
+        )
+
+        if not stop_requested:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "The execution is marked as running, "
+                    "but no active local process was found."
+                ),
+            )
+
+        return RedirectResponse(
+            url="/history",
+            status_code=303,
+        )
+
+    finally:
+        db.close()
+
 
 @app.post(
     "/executions/{execution_id}/retry",

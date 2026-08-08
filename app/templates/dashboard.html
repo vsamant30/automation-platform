@@ -1856,35 +1856,59 @@ function renderExecutionMonitor(executions) {
         `;
     }
     else {
-        runningExecutions.forEach(function (execution) {
-            const item = document.createElement("a");
+runningExecutions.forEach(function (execution) {
+    const item = document.createElement("div");
 
-            item.className =
-                "execution-monitor-item";
+    item.className =
+        "execution-monitor-item";
 
-            item.href =
-                `/executions/${execution.id}/details`;
+    const stopButtonHtml = isAdmin
+        ? `
+            <button
+                type="button"
+                class="btn btn-danger btn-small stopExecutionButton"
+                data-execution-id="${execution.id}"
+            >
+                ■ Stop
+            </button>
+        `
+        : "";
 
-            item.innerHTML = `
-                <div>
-                    <strong>
-                        ${execution.job_name}
-                    </strong>
+    item.innerHTML = `
+        <a
+            href="/executions/${execution.id}/details"
+            style="text-decoration: none; color: inherit; flex: 1;"
+        >
+            <div>
+                <strong>
+                    ${execution.job_name}
+                </strong>
 
-                    <div class="execution-monitor-meta">
-                        Execution #${execution.id}
-                        · Job #${execution.job_id}
-                        · Started ${execution.started_at || "-"}
-                    </div>
+                <div class="execution-monitor-meta">
+                    Execution #${execution.id}
+                    · Job #${execution.job_id}
+                    · Started ${execution.started_at || "-"}
                 </div>
+            </div>
+        </a>
 
-                <span class="status status-running">
-                    Running
-                </span>
-            `;
+        <div
+            style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            "
+        >
+            <span class="status status-running">
+                Running
+            </span>
 
-            runningExecutionList.appendChild(item);
-        });
+            ${stopButtonHtml}
+        </div>
+    `;
+
+    runningExecutionList.appendChild(item);
+});
     }
 
     failedExecutionList.innerHTML = "";
@@ -2661,6 +2685,90 @@ document.querySelectorAll(".deleteJobForm").forEach(function (form) {
 
     });
 
+});
+
+document.addEventListener("click", async function (event) {
+    const button = event.target.closest(
+        ".stopExecutionButton"
+    );
+
+    if (!button) {
+        return;
+    }
+
+    const executionId =
+        button.dataset.executionId;
+
+    if (!executionId) {
+        return;
+    }
+
+    const confirmed = confirm(
+        "Are you sure you want to stop this running execution?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Stopping...";
+
+    showToast(
+        "Stopping execution...",
+        "info"
+    );
+
+    try {
+        const response = await fetch(
+            `/executions/${executionId}/stop`,
+            {
+                method: "POST",
+                redirect: "manual",
+            }
+        );
+
+        if (
+            !response.ok &&
+            response.status !== 0 &&
+            response.status !== 303
+        ) {
+            let message =
+                "Unable to stop execution.";
+
+            try {
+                const data = await response.json();
+
+                if (data.detail) {
+                    message = data.detail;
+                }
+            }
+            catch (error) {
+                // Keep the default message.
+            }
+
+            throw new Error(message);
+        }
+
+        showToast(
+            "Stop request sent successfully.",
+            "success"
+        );
+
+        setTimeout(function () {
+            refreshDashboard();
+        }, 1000);
+    }
+    catch (error) {
+        button.disabled = false;
+        button.textContent = "■ Stop";
+
+        showToast(
+            error.message ||
+            "Unable to stop execution.",
+            "error"
+        );
+    }
 });
 
 document.addEventListener("click", async function (event) {
