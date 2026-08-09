@@ -2536,6 +2536,13 @@ if (urlParams.get("deleted") === "true") {
     showToast("Job deleted successfully!");
 }
 
+if (urlParams.get("delete_error") === "remote_history") {
+    showToast(
+        "Job cannot be deleted because remote execution history exists.",
+        "error"
+    );
+}
+
 window.history.replaceState(
     {},
     document.title,

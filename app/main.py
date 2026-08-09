@@ -46,6 +46,7 @@ from app.core.security import verify_password
 
 from app.db.database import SessionLocal, engine
 from app.db.models import (
+    AgentJob,
     Base,
     Job,
     JobExecution,
@@ -1206,6 +1207,21 @@ def delete_job(
         )
 
         if job:
+            agent_job_count = (
+                db.query(AgentJob)
+                .filter(AgentJob.job_id == job.id)
+                .count()
+            )
+
+            if agent_job_count > 0:
+                return RedirectResponse(
+                    url=(
+                        "/dashboard?"
+                        "delete_error=remote_history"
+                    ),
+                    status_code=303,
+                )
+
             deleted_job_value = json.dumps(
                 {
                     "name": job.name,
@@ -1217,25 +1233,6 @@ def delete_job(
                 },
                 default=str,
             )
-
-            log_audit_event(
-                db=db,
-                user_id=current_user.id,
-                username=current_user.username,
-                action="DELETE_JOB",
-                entity_type="Job",
-                entity_id=job.id,
-                old_value=deleted_job_value,
-                new_value=None,
-            )
-
-            db.delete(job)
-            db.commit()
-
-        return RedirectResponse(
-            url="/dashboard?deleted=true",
-            status_code=303,
-)
 
     finally:
         db.close()        
