@@ -659,9 +659,15 @@ def run_job_from_dashboard(
 
         if not job:
             return RedirectResponse(
-            url="/dashboard",
-            status_code=303,
-        )
+                url="/dashboard",
+                status_code=303,
+            )
+
+        if not job.is_enabled:
+            return RedirectResponse(
+                url="/dashboard",
+                status_code=303,
+            )
 
         running_execution = (
             db.query(JobExecution)
