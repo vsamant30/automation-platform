@@ -106,6 +106,18 @@
 
 {% endif %}
 
+{% if current_user.role|lower == "admin" %}
+
+<a
+href="/settings"
+class="sidebar-link {% if request.url.path == '/settings' %}active{% endif %}"
+>
+    <span class="sidebar-icon">⚙️</span>
+    <span>Application Settings</span>
+</a>
+
+{% endif %}
+
     </nav>
 
     <div class="sidebar-footer">
