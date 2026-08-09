@@ -956,6 +956,16 @@ def retry_execution(
                 detail="Execution not found.",
             )
 
+        if execution.status != "Failed":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Only failed executions can be retried. "
+                    f"Execution {execution.id} has status "
+                    f"'{execution.status}'."
+                ),
+            )
+
         job = (
             db.query(Job)
             .filter(Job.id == execution.job_id)
@@ -966,6 +976,12 @@ def retry_execution(
             raise HTTPException(
                 status_code=404,
                 detail="Job not found.",
+            )
+
+        if not job.is_enabled:
+            raise HTTPException(
+                status_code=409,
+                detail="Disabled jobs cannot be retried.",
             )
 
         log_audit_event(

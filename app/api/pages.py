@@ -1618,6 +1618,12 @@ def retry_job(
                 detail="Only failed jobs can be retried.",
             )
 
+        if not job.is_enabled:
+            raise HTTPException(
+                status_code=409,
+                detail="Disabled jobs cannot be retried.",
+            )
+
         previous_status = job.status
 
         execution = execute_job_with_history(
