@@ -2,6 +2,11 @@ import os
 
 
 class Settings:
+    ENVIRONMENT = os.getenv(
+        "ENVIRONMENT",
+        "development",
+    ).strip().lower()
+
     APP_NAME = os.getenv(
         "APP_NAME",
         "Automation Platform API",
@@ -14,8 +19,19 @@ class Settings:
 
     SECRET_KEY = os.getenv(
         "SECRET_KEY",
-        "change-this-secret-key-before-production",
-    )
+        "",
+    ).strip()
+
+    if not SECRET_KEY:
+        if ENVIRONMENT == "production":
+            raise RuntimeError(
+                "SECRET_KEY must be configured "
+                "when ENVIRONMENT=production."
+            )
+
+        SECRET_KEY = (
+            "change-this-secret-key-before-production"
+        )
 
     JWT_ALGORITHM = os.getenv(
         "JWT_ALGORITHM",
@@ -141,5 +157,6 @@ class Settings:
         ).strip().lower()
         == "true"
     )
+
 
 settings = Settings()

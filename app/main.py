@@ -5,7 +5,7 @@ import shutil
 from datetime import datetime
 from threading import Lock, Thread
 from uuid import uuid4
-
+from app.core.config import settings
 from fastapi import (
     FastAPI,
     File,
@@ -355,10 +355,10 @@ async def browser_login(
             value=token,
             httponly=True,
             samesite="lax",
-            secure=False,
+            secure=settings.ENVIRONMENT == "production",
             max_age=3600,
             path="/",
-    )
+            )
         return response
 
     finally:
@@ -387,10 +387,26 @@ def logout():
     "/executions/{execution_id}/download",
     include_in_schema=False,
 )
-def download_execution_log(execution_id: int):
+def download_execution_log(
+    request: Request,
+    execution_id: int,
+):
     db = SessionLocal()
 
     try:
+        current_user = get_current_user_from_cookie(
+            request,
+            db,
+        )
+
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
+
+        require_admin(current_user)
+
         execution = (
             db.query(JobExecution)
             .filter(JobExecution.id == execution_id)
