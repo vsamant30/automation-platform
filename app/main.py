@@ -218,9 +218,78 @@ _manual_run_lock = Lock()
 _manual_running_job_ids: set[int] = set()
 
 
+def recover_interrupted_executions():
+    db = SessionLocal()
+
+    try:
+        recovery_time = datetime.utcnow()
+        recovery_message = (
+            "Execution interrupted because the application "
+            "was restarted before completion."
+        )
+
+        running_executions = (
+            db.query(JobExecution)
+            .filter(JobExecution.status == "Running")
+            .all()
+        )
+
+        recovered_job_ids = set()
+
+        for execution in running_executions:
+            execution.status = "Failed"
+            execution.result = None
+            execution.error_message = recovery_message
+            execution.completed_at = recovery_time
+
+            if execution.started_at:
+                execution.duration = (
+                    recovery_time - execution.started_at
+                ).total_seconds()
+
+            recovered_job_ids.add(execution.job_id)
+
+        for job_id in recovered_job_ids:
+            job = (
+                db.query(Job)
+                .filter(Job.id == job_id)
+                .first()
+            )
+
+            if job is None:
+                continue
+
+            job.status = "Failed"
+            job.result = None
+            job.error_message = recovery_message
+            job.completed_at = recovery_time
+
+            if job.started_at:
+                job.duration = (
+                    recovery_time - job.started_at
+                ).total_seconds()
+
+        if running_executions:
+            db.commit()
+
+            print(
+                "Startup recovery: marked "
+                f"{len(running_executions)} interrupted "
+                "execution(s) as Failed."
+            )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
+    recover_interrupted_executions()
     start_scheduler()
     
     
