@@ -6,7 +6,7 @@ authenticated remote agents for Windows, Linux, and macOS.
 
 ## Current baseline
 
-- Application version: **2.0.0**
+- Application version: **2.0.1**
 - Development branch: `develop-v2.0`
 - Automated regression baseline: **94 passing tests, zero warnings**
 - Database: SQLite by default; configurable through `DATABASE_URL`

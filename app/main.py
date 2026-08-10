@@ -201,7 +201,7 @@ New integrations should use endpoints under `/api/v1`.
 Unversioned endpoints remain available only for backward
 compatibility.
 """,
-    version="2.0.0",
+    version="2.0.1",
     contact={
         "name": "Vinayak Samant",
     },
