@@ -1,5 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+
+from app.core.time import utc_now
 from threading import Lock
 
 from sqlalchemy.orm import Session
@@ -228,7 +230,7 @@ def reserve_job_execution_start(
         if running_execution is not None:
             return running_execution, False
 
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         job.status = "Running"
         job.started_at = started_at
@@ -282,7 +284,7 @@ def execute_job_with_history(
     }
 
     try:
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         dependency_block_reason = (
             _get_dependency_block_reason(
@@ -337,7 +339,7 @@ def execute_job_with_history(
             execution_id=execution.id,
         )
 
-        completed_at = datetime.utcnow()
+        completed_at = utc_now()
 
         duration = (
             completed_at - started_at
@@ -406,7 +408,7 @@ def execute_job_with_history(
                         continue
 
     except JobExecutionCancelled as error:
-        completed_at = datetime.utcnow()
+        completed_at = utc_now()
 
         job.status = "Cancelled"
         job.result = None
@@ -441,7 +443,7 @@ def execute_job_with_history(
             )
 
     except Exception as error:
-        completed_at = datetime.utcnow()
+        completed_at = utc_now()
 
         job.status = "Failed"
         job.result = None

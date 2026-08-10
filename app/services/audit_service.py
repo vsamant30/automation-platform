@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.core.time import utc_now
+
 from sqlalchemy.orm import Session
 
 from app.db.models import AuditLog
@@ -29,7 +31,7 @@ def log_audit_event(
         old_value=old_value,
         new_value=new_value,
         ip_address=ip_address,
-        created_at=datetime.utcnow(),
+        created_at=utc_now(),
     )
 
 

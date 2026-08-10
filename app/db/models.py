@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.core.time import utc_now
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -141,7 +143,7 @@ class Job(Base):
     # Audit
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
     )
 
 
@@ -201,7 +203,7 @@ class JobExecution(Base):
     # Audit
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
     )
 
 
@@ -247,7 +249,7 @@ class User(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
@@ -305,7 +307,7 @@ class AuditLog(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
         index=True,
     )
@@ -383,8 +385,8 @@ class ApplicationSettings(Base):
 
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
         nullable=False,
     )
 
@@ -446,14 +448,14 @@ class Agent(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
         nullable=False,
     )
 
@@ -522,7 +524,7 @@ class AgentJob(Base):
 
     queued_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
@@ -543,14 +545,14 @@ class AgentJob(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
     )
 
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
         nullable=False,
     )
 
@@ -592,7 +594,7 @@ class AgentJobLog(Base):
 
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        default=utc_now,
         nullable=False,
         index=True,
     )

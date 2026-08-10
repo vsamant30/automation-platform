@@ -39,6 +39,7 @@ from app.core.auth import (
     get_current_user_from_cookie,
     require_admin,
 )
+from app.core.time import utc_now
 from app.db.database import SessionLocal
 
 from app.db.models import (
@@ -99,7 +100,7 @@ def _get_dashboard_statistics(db):
     """
 
     twenty_four_hours_ago = (
-        datetime.utcnow() - timedelta(hours=24)
+        utc_now() - timedelta(hours=24)
     )
 
     recent_executions = (

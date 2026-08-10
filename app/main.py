@@ -42,6 +42,7 @@ from app.core.exceptions import (
     validation_exception_handler,
 )
 from app.core.security import verify_password
+from app.core.time import utc_now
 
 from app.db.database import SessionLocal, engine
 from app.db.models import (
@@ -233,7 +234,7 @@ def recover_interrupted_executions():
     db = SessionLocal()
 
     try:
-        recovery_time = datetime.utcnow()
+        recovery_time = utc_now()
         recovery_message = (
             "Execution interrupted because the application "
             "was restarted before completion."
@@ -1371,4 +1372,3 @@ app.include_router(
 app.include_router(
     pages_router,
 )
-

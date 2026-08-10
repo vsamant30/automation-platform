@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.core.time import utc_now
+
 from sqlalchemy import func
 
 from app.db.database import SessionLocal
@@ -50,7 +52,7 @@ def append_agent_job_log(
             stream=stream,
             message=cleaned_message,
             sequence=next_sequence,
-            created_at=datetime.utcnow(),
+        created_at=utc_now(),
         )
 
         db.add(log)

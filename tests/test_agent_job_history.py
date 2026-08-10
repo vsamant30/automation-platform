@@ -1,5 +1,7 @@
 from collections.abc import Generator
 from datetime import datetime, timedelta
+
+from app.core.time import utc_now
 from unittest.mock import MagicMock
 
 import pytest
@@ -253,7 +255,7 @@ def test_stale_claim_updates_standard_history() -> None:
         assert agent_job is not None
 
         agent_job.claimed_at = (
-            datetime.utcnow()
+        utc_now()
             - timedelta(minutes=10)
         )
 
@@ -419,7 +421,7 @@ def test_stale_running_job_updates_all_records() -> None:
         assert agent_job is not None
 
         agent_job.started_at = (
-            datetime.utcnow()
+        utc_now()
             - timedelta(minutes=90)
         )
 

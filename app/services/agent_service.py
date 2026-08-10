@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.core.time import utc_now
+
 from app.core.security import (
     generate_agent_api_key,
     hash_agent_api_key,
@@ -352,7 +354,7 @@ def record_agent_heartbeat(
             )
 
         agent.status = "Online"
-        agent.last_seen_at = datetime.utcnow()
+        agent.last_seen_at = utc_now()
 
         if cleaned_hostname is not None:
             agent.hostname = cleaned_hostname
@@ -383,7 +385,7 @@ def mark_stale_agents_offline(
     from datetime import timedelta
 
     cutoff = (
-        datetime.utcnow()
+        utc_now()
         - timedelta(minutes=stale_after_minutes)
     )
 

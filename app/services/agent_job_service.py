@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
+from app.core.time import utc_now
+
 from app.services.email_service import (
     send_job_execution_notification,
 )
@@ -188,7 +190,7 @@ def queue_job_for_agent(
             script_type=job.script_type,
             script_path=script_path,
             status="Queued",
-            queued_at=datetime.utcnow(),
+        queued_at=utc_now(),
         )
 
         db.add(agent_job)
@@ -251,7 +253,7 @@ def claim_next_agent_job(
             return None
 
         agent_job.status = "Claimed"
-        agent_job.claimed_at = datetime.utcnow()
+        agent_job.claimed_at = utc_now()
 
         db.commit()
         db.refresh(agent_job)
@@ -373,7 +375,7 @@ def mark_agent_job_running(
             )
         )
 
-        started_at = datetime.utcnow()
+        started_at = utc_now()
 
         agent_job.status = "Running"
         agent_job.started_at = started_at
@@ -483,7 +485,7 @@ def complete_agent_job(
             )
         )
 
-        completed_at = datetime.utcnow()
+        completed_at = utc_now()
 
         started_at = (
             execution.started_at
@@ -593,7 +595,7 @@ def fail_agent_job(
             )
         )
 
-        completed_at = datetime.utcnow()
+        completed_at = utc_now()
 
         started_at = (
             execution.started_at
@@ -674,7 +676,7 @@ def mark_stale_agent_jobs_failed(
             "Running timeout must be greater than zero."
         )
 
-    current_time = datetime.utcnow()
+    current_time = utc_now()
 
     claimed_cutoff = (
         current_time
