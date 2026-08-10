@@ -221,6 +221,10 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
+UPLOAD_DIRECTORY = os.path.abspath(
+    "uploads"
+)
+
 _manual_run_lock = Lock()
 _manual_running_job_ids: set[int] = set()
 
@@ -539,12 +543,8 @@ def upload_script(
             for character in original_filename
         )
 
-        upload_directory = os.path.abspath(
-            "uploads"
-        )
-
         os.makedirs(
-            upload_directory,
+            UPLOAD_DIRECTORY,
             exist_ok=True,
         )
 
@@ -561,7 +561,7 @@ def upload_script(
         )
 
         destination_path = os.path.join(
-            upload_directory,
+            UPLOAD_DIRECTORY,
             unique_filename,
         )
 
