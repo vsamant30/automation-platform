@@ -1,330 +1,168 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
+{% block title %}
+Upload Script | Automation Platform
+{% endblock %}
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+{% block content %}
 
-    <title>Upload Script | Automation Platform</title>
+<div class="upload-page">
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+    <header class="page-header">
+        <div>
+            <span class="page-eyebrow">
+                Automation library
+            </span>
 
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 40px;
-            background: #f4f6f8;
-            color: #333;
-        }
+            <h1>Upload Automation Script</h1>
 
-        .page-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
+            <p>
+                Upload a validated script and create a runnable
+                automation job.
+            </p>
+        </div>
 
-        h1 {
-            margin-top: 0;
-            margin-bottom: 24px;
-            color: #2d2d2d;
-        }
+        <div class="upload-header-actions">
+            <a
+                href="/history"
+                class="ui-button ui-button-secondary"
+            >
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                    <path d="M3 4v5h5"></path>
+                    <path d="M12 7v5l3 2"></path>
+                </svg>
 
-        .btn {
-            display: inline-block;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition:
-                opacity 0.2s ease,
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: #0d6efd;
-        }
-
-        .btn-success {
-            background: #198754;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .navigation {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        .upload-card {
-            padding: 28px;
-            background: white;
-            border: 1px solid #e1e5e9;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .card-header {
-            padding-bottom: 18px;
-            margin-bottom: 22px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .card-title {
-            margin: 0;
-            color: #212529;
-            font-size: 24px;
-        }
-
-        .card-subtitle {
-            margin: 8px 0 0;
-            color: #666;
-            line-height: 1.5;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: bold;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #c9ced4;
-            border-radius: 6px;
-            background: white;
-            font-size: 15px;
-            outline: none;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
-        }
-
-        textarea {
-            min-height: 110px;
-            resize: vertical;
-        }
-
-        input[type="file"] {
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        .help-text {
-            margin-top: 7px;
-            color: #6c757d;
-            font-size: 13px;
-            line-height: 1.45;
-        }
-
-        .upload-info {
-            padding: 16px;
-            margin-bottom: 22px;
-            background: #f8f9fa;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-            color: #555;
-            line-height: 1.5;
-        }
-
-        .upload-info strong {
-            color: #333;
-        }
-
-        .form-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding-top: 22px;
-            margin-top: 25px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        @media screen and (max-width: 600px) {
-            body {
-                padding: 16px;
-            }
-
-            h1 {
-                font-size: 27px;
-            }
-
-            .navigation,
-            .form-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .navigation .btn,
-            .form-actions .btn {
-                width: 100%;
-                text-align: center;
-            }
-
-            .upload-card {
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="page-container">
-
-        <h1>Upload Automation Script</h1>
-
-        <div class="navigation">
+                Execution History
+            </a>
 
             <a
                 href="/dashboard"
-                class="btn btn-primary"
+                class="ui-button ui-button-secondary"
             >
-                ← Dashboard
-            </a>
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path d="m15 18-6-6 6-6"></path>
+                </svg>
 
-            <a
-                href="/history"
-                class="btn btn-primary"
-            >
-                📜 Execution History
+                Dashboard
             </a>
-
         </div>
+    </header>
 
-        <div class="upload-card">
+    <div class="upload-layout">
 
-            <div class="card-header">
+        <section class="ui-panel upload-form-panel">
+            <div class="ui-panel-header">
+                <div>
+                    <h2>Create Automation</h2>
 
-                <h2 class="card-title">
-                    Add a New Automation
-                </h2>
+                    <p>
+                        Provide the job information and select
+                        a supported script.
+                    </p>
+                </div>
 
-                <p class="card-subtitle">
-                    Upload a supported script and create a runnable automation job.
-                </p>
-
-            </div>
-
-            <div class="upload-info">
-                <strong>Supported script types:</strong>
-                Python, PowerShell, and Windows Batch.
-                The uploaded file will be copied into the platform's
-                <code>uploads</code> directory.
+                <span class="panel-header-icon" aria-hidden="true">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M12 16V4"></path>
+                        <path d="m7 9 5-5 5 5"></path>
+                        <path d="M5 20h14"></path>
+                    </svg>
+                </span>
             </div>
 
             <form
+                id="uploadScriptForm"
+                class="upload-form"
                 action="/upload-script"
                 method="post"
                 enctype="multipart/form-data"
-                id="uploadScriptForm"
             >
-
-            {% if validation_error %}
-<div
-    style="
-        background:#f8d7da;
-        color:#842029;
-        border:1px solid #f5c2c7;
-        padding:12px;
-        margin-bottom:20px;
-        border-radius:6px;
-        font-weight:bold;
-    "
->
-    {{ validation_error }}
-</div>
-{% endif %}
-
-                <div class="form-group">
-
-                    <label
-                        for="job_name"
-                        class="form-label"
+                {% if validation_error %}
+                <div
+                    class="upload-validation-error"
+                    role="alert"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
                     >
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 8v4"></path>
+                        <path d="M12 16h.01"></path>
+                    </svg>
+
+                    <span>
+                        <strong>Upload could not be completed</strong>
+                        {{ validation_error }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <div class="upload-field">
+                    <label for="job_name">
                         Job Name
+                        <span aria-hidden="true">*</span>
                     </label>
 
                     <input
-    id="job_name"
-    type="text"
-    name="job_name"
-    value="{{ job_name or '' }}"
-    placeholder="Enter a descriptive job name"
-    required
->
+                        id="job_name"
+                        type="text"
+                        name="job_name"
+                        value="{{ job_name or '' }}"
+                        placeholder="Example: Daily database backup"
+                        autocomplete="off"
+                        required
+                    >
 
-<small
-    id="job-name-message"
-    style="
-        display:block;
-        margin-top:7px;
-        font-weight:bold;
-    "
-></small>
-
-
+                    <small
+                        id="job-name-message"
+                        class="upload-field-message"
+                        aria-live="polite"
+                    ></small>
                 </div>
 
-                <div class="form-group">
-
-                    <label
-                        for="description"
-                        class="form-label"
-                    >
+                <div class="upload-field">
+                    <label for="description">
                         Description
                     </label>
 
                     <textarea
+                        id="description"
                         name="description"
-                        placeholder="Describe what this automation does"
+                        placeholder="Explain what this automation does and when it should be used"
                     >{{ description or '' }}</textarea>
 
+                    <small>
+                        A concise description helps administrators
+                        understand the purpose of this job.
+                    </small>
                 </div>
 
-                <div class="form-group">
-
-                    <label
-                        for="script_type"
-                        class="form-label"
-                    >
+                <div class="upload-field">
+                    <label for="script_type">
                         Script Type
+                        <span aria-hidden="true">*</span>
                     </label>
 
                     <select
@@ -333,166 +171,380 @@
                         required
                     >
                         <option
-    value="python"
-    {% if script_type == "python" %}selected{% endif %}
->
-    Python
-</option>
+                            value="python"
+                            {% if script_type == "python" %}selected{% endif %}
+                        >
+                            Python (.py)
+                        </option>
 
-<option
-    value="powershell"
-    {% if script_type == "powershell" %}selected{% endif %}
->
-    PowerShell
-</option>
+                        <option
+                            value="powershell"
+                            {% if script_type == "powershell" %}selected{% endif %}
+                        >
+                            PowerShell (.ps1)
+                        </option>
 
-<option
-    value="batch"
-    {% if script_type == "batch" %}selected{% endif %}
->
-    Batch
-</option>
-
-
+                        <option
+                            value="batch"
+                            {% if script_type == "batch" %}selected{% endif %}
+                        >
+                            Windows Batch (.bat or .cmd)
+                        </option>
                     </select>
 
-                    <div class="help-text">
-                        The selected type must match the uploaded file extension.
-                    </div>
-
+                    <small>
+                        The selected type must match the uploaded
+                        file extension.
+                    </small>
                 </div>
 
-                <div class="form-group">
+                <div class="upload-field">
+                    <label for="script_file">
+                        Script File
+                        <span aria-hidden="true">*</span>
+                    </label>
 
                     <label
                         for="script_file"
-                        class="form-label"
+                        class="upload-drop-zone"
                     >
-                        Select Script
+                        <span
+                            class="upload-drop-icon"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path d="M12 16V4"></path>
+                                <path d="m7 9 5-5 5 5"></path>
+                                <path d="M5 20h14"></path>
+                            </svg>
+                        </span>
+
+                        <span class="upload-drop-copy">
+                            <strong>
+                                Choose an automation script
+                            </strong>
+
+                            <span id="selectedFileName">
+                                No file selected
+                            </span>
+                        </span>
+
+                        <span class="upload-browse-button">
+                            Browse
+                        </span>
                     </label>
 
                     <input
                         id="script_file"
+                        class="upload-file-input"
                         type="file"
                         name="script_file"
                         accept=".py,.ps1,.bat,.cmd"
                         required
                     >
 
-                    <div class="help-text">
-                        Allowed file types: .py, .ps1, .bat and .cmd
-                    </div>
-
+                    <small>
+                        Allowed file types: .py, .ps1, .bat and .cmd.
+                        The server validates size, extension, content,
+                        and text encoding.
+                    </small>
                 </div>
 
-                <div class="form-actions">
-
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                        id="uploadScriptButton"
-                    >
-                        📂 Upload Script
-                    </button>
-
+                <div class="upload-form-actions">
                     <a
                         href="/dashboard"
-                        class="btn btn-secondary"
+                        class="ui-button ui-button-secondary"
                     >
                         Cancel
                     </a>
 
+                    <button
+                        id="uploadScriptButton"
+                        type="submit"
+                        class="ui-button ui-button-primary"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path d="M12 16V4"></path>
+                            <path d="m7 9 5-5 5 5"></path>
+                            <path d="M5 20h14"></path>
+                        </svg>
+
+                        Upload Script
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <aside class="upload-guidance">
+
+            <section class="ui-panel upload-guidance-card">
+                <div class="ui-panel-header">
+                    <div>
+                        <h2>Supported Scripts</h2>
+
+                        <p>
+                            File types accepted by the platform.
+                        </p>
+                    </div>
                 </div>
 
-            </form>
+                <div class="script-type-list">
+                    <div>
+                        <span class="script-type-icon python">
+                            PY
+                        </span>
 
-        </div>
+                        <span>
+                            <strong>Python</strong>
+                            <small>.py files</small>
+                        </span>
+                    </div>
+
+                    <div>
+                        <span class="script-type-icon powershell">
+                            PS
+                        </span>
+
+                        <span>
+                            <strong>PowerShell</strong>
+                            <small>.ps1 files</small>
+                        </span>
+                    </div>
+
+                    <div>
+                        <span class="script-type-icon batch">
+                            CMD
+                        </span>
+
+                        <span>
+                            <strong>Windows Batch</strong>
+                            <small>.bat and .cmd files</small>
+                        </span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ui-panel upload-guidance-card">
+                <div class="ui-panel-header">
+                    <div>
+                        <h2>Before You Upload</h2>
+
+                        <p>
+                            Quick validation checklist.
+                        </p>
+                    </div>
+                </div>
+
+                <ul class="upload-checklist">
+                    <li>
+                        <span aria-hidden="true">✓</span>
+                        Use a unique and descriptive job name.
+                    </li>
+
+                    <li>
+                        <span aria-hidden="true">✓</span>
+                        Match the script type to its extension.
+                    </li>
+
+                    <li>
+                        <span aria-hidden="true">✓</span>
+                        Confirm the script contains UTF-8 text.
+                    </li>
+
+                    <li>
+                        <span aria-hidden="true">✓</span>
+                        Avoid embedding passwords or API keys.
+                    </li>
+                </ul>
+            </section>
+
+            <section class="upload-security-note">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+
+                <span>
+                    <strong>Security validation enabled</strong>
+
+                    <small>
+                        Rejected uploads do not create files or jobs.
+                    </small>
+                </span>
+            </section>
+
+        </aside>
 
     </div>
 
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 
 <script>
-const uploadForm = document.getElementById("uploadScriptForm");
-const jobNameInput = document.getElementById("job_name");
-const jobNameMessage = document.getElementById("job-name-message");
-const uploadButton = document.getElementById("uploadScriptButton");
+    (() => {
+        const uploadForm = document.getElementById(
+            "uploadScriptForm"
+        );
 
-let validationTimer;
-let jobNameIsValid = false;
+        const jobNameInput = document.getElementById(
+            "job_name"
+        );
 
-function clearJobNameMessage() {
-    jobNameMessage.textContent = "";
-    jobNameMessage.style.color = "";
-}
+        const jobNameMessage = document.getElementById(
+            "job-name-message"
+        );
 
-function setUploadButtonState() {
-    uploadButton.disabled = !jobNameIsValid;
-}
+        const uploadButton = document.getElementById(
+            "uploadScriptButton"
+        );
 
-jobNameInput.addEventListener("input", function () {
-    clearTimeout(validationTimer);
+        const scriptFileInput = document.getElementById(
+            "script_file"
+        );
 
-    const name = jobNameInput.value.trim();
+        const selectedFileName = document.getElementById(
+            "selectedFileName"
+        );
 
-    if (name === "") {
-        clearJobNameMessage();
-        jobNameIsValid = false;
-        setUploadButtonState();
-        return;
-    }
+        let validationTimer;
+        let jobNameIsValid = false;
 
-    jobNameMessage.style.color = "#6c757d";
-    jobNameMessage.textContent = "Checking job name...";
-
-    jobNameIsValid = false;
-    setUploadButtonState();
-
-    validationTimer = setTimeout(async function () {
-        try {
-            const response = await fetch(
-                "/jobs/check-name?name=" + encodeURIComponent(name)
+        const setMessage = (
+            message,
+            state = ""
+        ) => {
+            jobNameMessage.textContent = message;
+            jobNameMessage.classList.remove(
+                "checking",
+                "valid",
+                "invalid"
             );
 
-            if (!response.ok) {
-                throw new Error("Unable to validate job name.");
+            if (state) {
+                jobNameMessage.classList.add(state);
             }
+        };
 
-            const data = await response.json();
+        const setUploadButtonState = () => {
+            uploadButton.disabled = !jobNameIsValid;
+        };
 
-            if (!data.valid) {
-                jobNameMessage.style.color = "#dc3545";
-                jobNameMessage.textContent = data.message;
+        jobNameInput.addEventListener(
+            "input",
+            () => {
+                window.clearTimeout(validationTimer);
+
+                const name = jobNameInput.value.trim();
+
+                if (!name) {
+                    setMessage("");
+                    jobNameIsValid = false;
+                    setUploadButtonState();
+                    return;
+                }
+
+                setMessage(
+                    "Checking job name...",
+                    "checking"
+                );
+
                 jobNameIsValid = false;
-            } else {
-                jobNameMessage.style.color = "#198754";
-                jobNameMessage.textContent = data.message;
-                jobNameIsValid = true;
+                setUploadButtonState();
+
+                validationTimer = window.setTimeout(
+                    async () => {
+                        try {
+                            const response = await fetch(
+                                "/jobs/check-name?name="
+                                + encodeURIComponent(name)
+                            );
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    "Unable to validate job name."
+                                );
+                            }
+
+                            const data = await response.json();
+
+                            if (data.valid) {
+                                setMessage(
+                                    data.message,
+                                    "valid"
+                                );
+
+                                jobNameIsValid = true;
+                            }
+                            else {
+                                setMessage(
+                                    data.message,
+                                    "invalid"
+                                );
+
+                                jobNameIsValid = false;
+                            }
+
+                            setUploadButtonState();
+                        }
+                        catch {
+                            setMessage(
+                                "Unable to validate the job name. "
+                                + "Please try again.",
+                                "invalid"
+                            );
+
+                            jobNameIsValid = false;
+                            setUploadButtonState();
+                        }
+                    },
+                    400
+                );
             }
+        );
 
-            setUploadButtonState();
+        scriptFileInput.addEventListener(
+            "change",
+            () => {
+                const file = scriptFileInput.files[0];
 
-        } catch (error) {
-            jobNameMessage.style.color = "#dc3545";
-            jobNameMessage.textContent =
-                "Unable to validate the job name. Please try again.";
+                selectedFileName.textContent = file
+                    ? file.name
+                    : "No file selected";
+            }
+        );
 
-            jobNameIsValid = false;
-            setUploadButtonState();
-        }
-    }, 400);
-});
+        uploadForm.addEventListener(
+            "submit",
+            (event) => {
+                if (!jobNameIsValid) {
+                    event.preventDefault();
+                    jobNameInput.focus();
+                }
+            }
+        );
 
-uploadForm.addEventListener("submit", function (event) {
-    if (!jobNameIsValid) {
-        event.preventDefault();
-        jobNameInput.focus();
-    }
-});
-
-setUploadButtonState();
+        setUploadButtonState();
+    })();
 </script>
 
-
-</body>
-
-</html>
+{% endblock %}
