@@ -1212,6 +1212,21 @@ def delete_job(
                 status_code=303,
             )
 
+        execution_count = (
+            db.query(JobExecution)
+            .filter(JobExecution.job_id == job.id)
+            .count()
+        )
+
+        if execution_count > 0:
+            return RedirectResponse(
+                url=(
+                    "/dashboard?"
+                    "delete_error=execution_history"
+                ),
+                status_code=303,
+            )
+
         agent_job_count = (
             db.query(AgentJob)
             .filter(AgentJob.job_id == job.id)

@@ -15,6 +15,7 @@ from app.db.models import (
     AuditLog,
     Base,
     Job,
+    JobExecution,
     User,
 )
 
@@ -239,6 +240,74 @@ def test_job_with_remote_history_is_not_deleted(
         )
 
         assert protected_job is not None
+        assert delete_audit is None
+
+    finally:
+        db.close()
+
+
+def test_job_with_local_execution_history_is_not_deleted(
+    client: TestClient,
+) -> None:
+    _, job = create_admin_and_job()
+
+    db: Session = TestSessionLocal()
+
+    try:
+        execution = JobExecution(
+            job_id=job.id,
+            job_name=job.name,
+            status="Completed",
+            result="Historical execution result",
+        )
+
+        db.add(execution)
+        db.commit()
+        db.refresh(execution)
+
+        execution_id = execution.id
+
+    finally:
+        db.close()
+
+    response = client.post(
+        f"/dashboard/jobs/{job.id}/delete",
+        cookies=admin_cookie(),
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == (
+        "/dashboard?delete_error=execution_history"
+    )
+
+    db = TestSessionLocal()
+
+    try:
+        protected_job = (
+            db.query(Job)
+            .filter(Job.id == job.id)
+            .first()
+        )
+
+        preserved_execution = (
+            db.query(JobExecution)
+            .filter(JobExecution.id == execution_id)
+            .first()
+        )
+
+        delete_audit = (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.action == "DELETE_JOB",
+                AuditLog.entity_type == "Job",
+                AuditLog.entity_id == job.id,
+            )
+            .first()
+        )
+
+        assert protected_job is not None
+        assert preserved_execution is not None
         assert delete_audit is None
 
     finally:
