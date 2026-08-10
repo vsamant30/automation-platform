@@ -1,456 +1,337 @@
-<!DOCTYPE html>
-<html>
-<head>
-
-    <title>Edit Job</title>
-
-    <style>
-
-        body{
-            font-family:Arial;
-            margin:40px;
-            background:#f4f4f4;
-        }
-
-        h1{
-            color:#333;
-        }
-
-        .card{
-            background:white;
-            padding:25px;
-            border-radius:8px;
-            width:700px;
-        }
-
-        label{
-            font-weight:bold;
-            display:block;
-            margin-top:15px;
-            margin-bottom:5px;
-        }
-
-        input,
-        textarea,
-        select{
-
-            width:100%;
-            padding:10px;
-            font-size:16px;
-
-        }
-
-        textarea{
-
-            height:120px;
-
-        }
-
-        button{
-
-            margin-top:20px;
-
-            background:#0d6efd;
-
-            color:white;
-
-            border:none;
-
-            padding:12px 20px;
-
-            border-radius:5px;
-
-            cursor:pointer;
-
-            font-size:16px;
-
-        }
-
-        a{
-
-            text-decoration:none;
-
-            margin-right:15px;
-
-        }
-
-    </style>
-
-
-    <style>
-
-.toast{
-    position:fixed;
-    top:20px;
-    right:20px;
-    background:#dc3545;
-    color:white;
-    padding:14px 18px;
-    border-radius:6px;
-    font-weight:bold;
-    z-index:9999;
-    box-shadow:0 4px 10px rgba(0,0,0,.25);
-}
-
-</style>
-
-</head>
-
-<body>
-
-<h1>Edit Job</h1>
-
-<p>
-
-<a href="/dashboard">← Dashboard</a>
-
-<a href="/jobs/{{ job.id }}/details">
-Job Details
-</a>
-
-</p>
-
-<div class="card">
-
-<form
-action="/jobs/{{ job.id }}/edit"
-method="post"
-id="editJobForm"
->
-
-<label>
-
-Job Name
-
-</label>
-
-<input
-type="text"
-id="job_name"
-name="job_name"
-value="{{ job.name }}"
-required
->
-
-<small
-id="job-name-message"
-style="font-weight:bold;"
-></small>
-
-<label>
-
-Description
-
-</label>
-
-<textarea
-id="description"
-name="description"
->{{ job.description }}</textarea>
-
-<label>
-
-Script Type
-
-</label>
-
-<select
-id="script_type"
-name="script_type"
->
-
-<option
-value="python"
-{% if job.script_type=="python" %}
-selected
-{% endif %}
->
-
-Python
-
-</option>
-
-<option
-value="powershell"
-{% if job.script_type=="powershell" %}
-selected
-{% endif %}
->
-
-PowerShell
-
-</option>
-
-<option
-value="batch"
-{% if job.script_type=="batch" %}
-selected
-{% endif %}
->
-
-Batch
-
-</option>
-
-</select>
-
-<label>
-
-Category
-
-</label>
-
-<select
-id="category"
-name="category"
->
-
-<option
-value="General"
-{% if job.category == "General" %}
-selected
-{% endif %}
->
-General
-</option>
-
-<option
-value="Azure"
-{% if job.category == "Azure" %}
-selected
-{% endif %}
->
-Azure
-</option>
-
-<option
-value="AWS"
-{% if job.category == "AWS" %}
-selected
-{% endif %}
->
-AWS
-</option>
-
-<option
-value="SAP"
-{% if job.category == "SAP" %}
-selected
-{% endif %}
->
-SAP
-</option>
-
-<option
-value="ServiceNow"
-{% if job.category == "ServiceNow" %}
-selected
-{% endif %}
->
-ServiceNow
-</option>
-
-</select>
-
-<label>
-
-Script Path
-
-</label>
-
-<input
-type="text"
-id="script_path"
-name="script_path"
-value="{{ job.script_path }}"
-required
->
-
-<button
-type="submit"
-id="saveJobButton"
->
-
-💾 Save Changes
-
-</button>
-
-</form>
-
+{% extends "base.html" %}
+
+{% block title %}Edit {{ job.name }} | Automation Platform{% endblock %}
+
+{% block content %}
+<div class="edit-job-page">
+    <header class="page-heading">
+        <div>
+            <p class="page-eyebrow">JOB CONFIGURATION</p>
+            <h1>Edit Job</h1>
+            <p>Update the automation definition and script configuration.</p>
+        </div>
+
+        <div class="job-header-actions">
+            <a
+                href="/jobs/{{ job.id }}/details"
+                class="btn btn-secondary"
+            >
+                Job Details
+            </a>
+
+            <a href="/dashboard" class="btn btn-secondary">
+                Dashboard
+            </a>
+        </div>
+    </header>
+
+    <section class="edit-job-panel">
+        <div class="edit-job-panel-header">
+            <div class="edit-job-icon">✎</div>
+
+            <div>
+                <h2>{{ job.name }}</h2>
+                <p>
+                    Job #{{ job.id }} · Modify the fields below,
+                    then save your changes.
+                </p>
+            </div>
+
+            <span class="status-badge status-{{ job.status|lower }}">
+                {{ job.status }}
+            </span>
+        </div>
+
+        <form
+            action="/jobs/{{ job.id }}/edit"
+            method="post"
+            id="editJobForm"
+            class="edit-job-form"
+        >
+            <div class="edit-job-form-grid">
+                <div class="form-field form-field-wide">
+                    <label for="job_name">
+                        Job Name <span aria-hidden="true">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="job_name"
+                        name="job_name"
+                        value="{{ job.name }}"
+                        maxlength="255"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <small id="job-name-message" class="field-message">
+                        Use a unique and descriptive job name.
+                    </small>
+                </div>
+
+                <div class="form-field form-field-wide">
+                    <label for="description">Description</label>
+
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="5"
+                        placeholder="Describe what this automation does"
+                    >{{ job.description or "" }}</textarea>
+
+                    <small>
+                        Explain the purpose and expected outcome of this job.
+                    </small>
+                </div>
+
+                <div class="form-field">
+                    <label for="script_type">
+                        Script Type <span aria-hidden="true">*</span>
+                    </label>
+
+                    <select id="script_type" name="script_type" required>
+                        <option
+                            value="python"
+                            {% if job.script_type == "python" %}selected{% endif %}
+                        >
+                            Python
+                        </option>
+
+                        <option
+                            value="powershell"
+                            {% if job.script_type == "powershell" %}selected{% endif %}
+                        >
+                            PowerShell
+                        </option>
+
+                        <option
+                            value="batch"
+                            {% if job.script_type == "batch" %}selected{% endif %}
+                        >
+                            Windows Batch
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="category">Category</label>
+
+                    <select id="category" name="category">
+                        {% for category_name in
+                            ["General", "Azure", "AWS", "SAP", "ServiceNow"]
+                        %}
+                        <option
+                            value="{{ category_name }}"
+                            {% if job.category == category_name %}selected{% endif %}
+                        >
+                            {{ category_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-field form-field-wide">
+                    <label for="script_path">
+                        Script Path <span aria-hidden="true">*</span>
+                    </label>
+
+                    <input
+                        type="text"
+                        id="script_path"
+                        name="script_path"
+                        value="{{ job.script_path or '' }}"
+                        required
+                    >
+
+                    <small>
+                        Absolute path to the automation script executed by
+                        this job.
+                    </small>
+                </div>
+            </div>
+
+            <div class="edit-job-notice">
+                <span class="edit-job-notice-icon">i</span>
+
+                <div>
+                    <strong>Review before saving</strong>
+                    <p>
+                        Changes affect future manual, scheduled, and remote
+                        executions of this job.
+                    </p>
+                </div>
+            </div>
+
+            <div class="edit-job-form-actions">
+                <a
+                    href="/jobs/{{ job.id }}/details"
+                    class="btn btn-secondary"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    id="saveJobButton"
+                    class="btn btn-primary"
+                    disabled
+                >
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </section>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const validationError = urlParams.get("validation_error");
+    const duplicateError = urlParams.get("duplicate");
 
-function showToast(message){
-
-    const toast=document.createElement("div");
-
-    toast.className="toast";
-
-    toast.innerText=message;
-
-    document.body.appendChild(toast);
-
-    setTimeout(function(){
-
-        toast.remove();
-
-    },3500);
-
-}
-
-const urlParams=new URLSearchParams(window.location.search);
-
-if(urlParams.get("duplicate")==="true"){
-
-    showToast(
-        "Job name already exists. Please choose a different name."
-    );
-
-}
-
-const jobNameInput=document.getElementById("job_name");
-
-const jobNameMessage=document.getElementById("job-name-message");
-
-const saveJobButton=document.getElementById("saveJobButton");
-
-const editJobForm=document.getElementById("editJobForm");
-
-
-
-let timer;
-
-let originalName = jobNameInput.value.trim();
-
-const descriptionInput = document.getElementById("description");
-
-const scriptTypeInput = document.getElementById("script_type");
-
-const categoryInput = document.getElementById("category");
-
-const scriptPathInput = document.getElementById("script_path");
-
-const originalValues = {
-    name: jobNameInput.value.trim(),
-    description: descriptionInput.value.trim(),
-    scriptType: scriptTypeInput.value,
-    category: categoryInput.value,
-    scriptPath: scriptPathInput.value.trim()
-};
-
-function hasChanges(){
-
-    return (
-
-        jobNameInput.value.trim() !== originalValues.name ||
-
-        descriptionInput.value.trim() !== originalValues.description ||
-
-        scriptTypeInput.value !== originalValues.scriptType ||
-
-        categoryInput.value !== originalValues.category ||
-
-        scriptPathInput.value.trim() !== originalValues.scriptPath
-
-    );
-
-}
-
-jobNameInput.addEventListener("input",function(){
-
-    clearTimeout(timer);
-
-const name = jobNameInput.value.trim();
-
-if (name === originalName) {
-
-    jobNameMessage.innerHTML = "";
-    jobNameMessage.style.color = "";
-
-    updateSaveButton();
-
-    return;
-
-}
-
-if (name === "") {
-
-    jobNameMessage.innerHTML = "";
-    jobNameMessage.style.color = "";
-
-    updateSaveButton();
-
-    return;
-
-}
-
-    timer=setTimeout(async function(){
-
-        const response=await fetch(
-
-            "/jobs/check-name?name="+
-            encodeURIComponent(name)+
-            "&exclude_job_id={{ job.id }}"
-
+    if (validationError) {
+        showEditJobToast(validationError);
+    } else if (duplicateError === "true") {
+        showEditJobToast(
+            "Job name already exists. Please choose another name."
         );
-
-        const data=await response.json();
-
-if (!data.valid) {
-
-    jobNameMessage.style.color = "red";
-
-    jobNameMessage.innerHTML = data.message;
-
-    saveJobButton.disabled = true;
-
-}
-else {
-
-    jobNameMessage.style.color = "green";
-
-    jobNameMessage.innerHTML = data.message;
-
-    updateSaveButton();
-
-}
-
-    },400);
-
-});
-
-function updateSaveButton(){
-
-    saveJobButton.disabled = !hasChanges();
-
-}
-
-descriptionInput.addEventListener("input", updateSaveButton);
-
-scriptPathInput.addEventListener("input", updateSaveButton);
-
-scriptTypeInput.addEventListener("change", updateSaveButton);
-
-categoryInput.addEventListener("change", updateSaveButton);
-
-// Initial state
-updateSaveButton();
-
-
-
-editJobForm.addEventListener("submit",function(event){
-
-    if(saveJobButton.disabled){
-
-        event.preventDefault();
-
     }
 
-});
+    function showEditJobToast(message) {
+        const toast = document.createElement("div");
+        toast.className = "toast toast-error";
+        toast.textContent = message;
+        document.body.appendChild(toast);
 
+        window.setTimeout(() => {
+            toast.remove();
+        }, 4000);
+    }
+
+    const editJobForm = document.getElementById("editJobForm");
+    const jobNameInput = document.getElementById("job_name");
+    const descriptionInput = document.getElementById("description");
+    const scriptTypeInput = document.getElementById("script_type");
+    const categoryInput = document.getElementById("category");
+    const scriptPathInput = document.getElementById("script_path");
+    const jobNameMessage = document.getElementById("job-name-message");
+    const saveJobButton = document.getElementById("saveJobButton");
+
+    const originalValues = {
+        name: jobNameInput.value.trim(),
+        description: descriptionInput.value.trim(),
+        scriptType: scriptTypeInput.value,
+        category: categoryInput.value,
+        scriptPath: scriptPathInput.value.trim()
+    };
+
+    let nameIsValid = true;
+    let validationTimer;
+
+    function hasChanges() {
+        return (
+            jobNameInput.value.trim() !== originalValues.name ||
+            descriptionInput.value.trim() !==
+                originalValues.description ||
+            scriptTypeInput.value !== originalValues.scriptType ||
+            categoryInput.value !== originalValues.category ||
+            scriptPathInput.value.trim() !==
+                originalValues.scriptPath
+        );
+    }
+
+    function updateSaveButton() {
+        const requiredFieldsPresent =
+            jobNameInput.value.trim() !== "" &&
+            scriptPathInput.value.trim() !== "";
+
+        saveJobButton.disabled = !(
+            hasChanges() &&
+            requiredFieldsPresent &&
+            nameIsValid
+        );
+    }
+
+    jobNameInput.addEventListener("input", () => {
+        window.clearTimeout(validationTimer);
+
+        const name = jobNameInput.value.trim();
+
+        if (name === originalValues.name) {
+            nameIsValid = true;
+            jobNameMessage.className = "field-message";
+            jobNameMessage.textContent =
+                "Use a unique and descriptive job name.";
+            updateSaveButton();
+            return;
+        }
+
+        if (!name) {
+            nameIsValid = false;
+            jobNameMessage.className = "field-message field-message-error";
+            jobNameMessage.textContent = "Job name is required.";
+            updateSaveButton();
+            return;
+        }
+
+        nameIsValid = false;
+        jobNameMessage.className = "field-message";
+        jobNameMessage.textContent = "Checking availability…";
+        updateSaveButton();
+
+        validationTimer = window.setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    "/jobs/check-name?name=" +
+                    encodeURIComponent(name) +
+                    "&exclude_job_id={{ job.id }}"
+                );
+
+                if (!response.ok) {
+                    throw new Error("Name validation failed.");
+                }
+
+                const data = await response.json();
+                nameIsValid = Boolean(data.valid);
+
+                jobNameMessage.className = nameIsValid
+                    ? "field-message field-message-success"
+                    : "field-message field-message-error";
+
+                jobNameMessage.textContent = data.message;
+            } catch (error) {
+                nameIsValid = false;
+                jobNameMessage.className =
+                    "field-message field-message-error";
+                jobNameMessage.textContent =
+                    "Unable to verify this job name.";
+            }
+
+            updateSaveButton();
+        }, 400);
+    });
+
+    [
+        descriptionInput,
+        scriptPathInput
+    ].forEach((input) => {
+        input.addEventListener("input", updateSaveButton);
+    });
+
+    [
+        scriptTypeInput,
+        categoryInput
+    ].forEach((input) => {
+        input.addEventListener("change", updateSaveButton);
+    });
+
+    editJobForm.addEventListener("submit", (event) => {
+        if (saveJobButton.disabled) {
+            event.preventDefault();
+        }
+    });
+
+    updateSaveButton();
 </script>
-
-</body>
-
-</html>
+{% endblock %}

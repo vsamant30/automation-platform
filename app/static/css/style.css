@@ -6382,3 +6382,313 @@ body.login-page {
         width: 100%;
     }
 }
+
+
+/* =========================================================
+   Edit Job
+   ========================================================= */
+
+.edit-job-page {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+}
+
+.edit-job-page .page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.edit-job-page .page-heading h1 {
+    margin: 4px 0 6px;
+    color: #0f172a;
+    font-size: clamp(28px, 3vw, 36px);
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+}
+
+.edit-job-page .page-heading > div > p:last-child {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.edit-job-page .page-eyebrow {
+    margin: 0;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+.edit-job-panel {
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #dbe4f0;
+    border-radius: 16px;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.edit-job-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #dbe4f0;
+}
+
+.edit-job-panel-header h2 {
+    margin: 0 0 4px;
+    color: #0f172a;
+    font-size: 19px;
+    line-height: 1.25;
+}
+
+.edit-job-panel-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.edit-job-panel-header .status-badge {
+    margin-left: auto;
+}
+
+.edit-job-icon {
+    display: grid;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 11px;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.edit-job-form {
+    padding: 24px;
+}
+
+.edit-job-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.edit-job-form .form-field {
+    min-width: 0;
+}
+
+.edit-job-form .form-field-wide {
+    grid-column: 1 / -1;
+}
+
+.edit-job-form label {
+    display: block;
+    margin-bottom: 8px;
+    color: #172033;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.edit-job-form label span {
+    color: #dc2626;
+}
+
+.edit-job-form input,
+.edit-job-form select,
+.edit-job-form textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    color: #172033;
+    background: #ffffff;
+    border: 1px solid #cbd7e6;
+    border-radius: 9px;
+    outline: none;
+    font: inherit;
+    font-size: 14px;
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        background-color 160ms ease;
+}
+
+.edit-job-form textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.55;
+}
+
+.edit-job-form input:hover,
+.edit-job-form select:hover,
+.edit-job-form textarea:hover {
+    border-color: #94a9c2;
+}
+
+.edit-job-form input:focus,
+.edit-job-form select:focus,
+.edit-job-form textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+}
+
+.edit-job-form small,
+.edit-job-form .field-message {
+    display: block;
+    min-height: 17px;
+    margin-top: 6px;
+    color: #718096;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.edit-job-form .field-message-success {
+    color: #15803d;
+    font-weight: 650;
+}
+
+.edit-job-form .field-message-error {
+    color: #dc2626;
+    font-weight: 650;
+}
+
+.edit-job-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 22px;
+    padding: 14px 16px;
+    color: #334155;
+    background: #f8fafc;
+    border: 1px solid #dbe4f0;
+    border-radius: 10px;
+}
+
+.edit-job-notice-icon {
+    display: grid;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.edit-job-notice strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #172033;
+    font-size: 12px;
+}
+
+.edit-job-notice p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.edit-job-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.edit-job-form-actions .btn {
+    min-height: 42px;
+    padding: 10px 18px;
+}
+
+.edit-job-form-actions button:disabled {
+    color: #94a3b8;
+    background: #e2e8f0;
+    border-color: #e2e8f0;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.toast.toast-error {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    z-index: 10000;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 13px 17px;
+    color: #ffffff;
+    background: #dc2626;
+    border-radius: 9px;
+    box-shadow: 0 12px 30px rgba(127, 29, 29, 0.25);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+@media (max-width: 760px) {
+    .edit-job-page .page-heading {
+        flex-direction: column;
+    }
+
+    .edit-job-page .job-header-actions {
+        width: 100%;
+    }
+
+    .edit-job-page .job-header-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .edit-job-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .edit-job-form .form-field-wide {
+        grid-column: auto;
+    }
+
+    .edit-job-panel-header {
+        align-items: flex-start;
+        padding: 18px;
+    }
+
+    .edit-job-panel-header .status-badge {
+        margin-left: 0;
+    }
+
+    .edit-job-form {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 520px) {
+    .edit-job-panel-header {
+        flex-wrap: wrap;
+    }
+
+    .edit-job-panel-header > div:nth-child(2) {
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .edit-job-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .edit-job-form-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
