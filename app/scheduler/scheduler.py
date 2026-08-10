@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -7,14 +7,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.db.database import SessionLocal
 from app.db.models import Job
-from app.services.job_runner import (
-    JobExecutionCancelled,
-    execute_job,
-)
-
-from app.services.execution_logger import write_execution_log
 from app.services.job_execution_service import (
-    reserve_job_execution_start,
+    execute_job_with_history,
 )
 
 from app.services.agent_service import (
@@ -78,14 +72,24 @@ def update_next_run(job_id: int) -> None:
 
 
 def execute_scheduled_job(job_id: int) -> None:
-    """Execute a database job and save its execution history."""
+    """
+    Execute a scheduled job through the common execution service.
+
+    Scheduled executions therefore use the same history,
+    dependency checks, conditional rules, duplicate-run
+    protection, logging, failure handling, and notifications
+    as manual and API executions.
+    """
     db = SessionLocal()
-    execution = None
 
     try:
-        job = db.query(Job).filter(Job.id == job_id).first()
+        job = (
+            db.query(Job)
+            .filter(Job.id == job_id)
+            .first()
+        )
 
-        if not job:
+        if job is None:
             logger.error(
                 "Scheduled job %s was not found.",
                 job_id,
@@ -94,169 +98,68 @@ def execute_scheduled_job(job_id: int) -> None:
 
         if not job.schedule_enabled:
             logger.info(
-                "Job %s is no longer enabled.",
-                job_id,
-            )
-            return
-        
-        if job.schedule_paused:
-            logger.info(
-                "Job %s schedule is paused.",
-                job_id,
-            )
-            return
-        
-        if not job.is_enabled:
-            logger.info(
-                "Job %s is disabled.",
+                "Scheduled job %s is no longer enabled.",
                 job_id,
             )
             return
 
-        execution, reserved = reserve_job_execution_start(
+        if job.schedule_paused:
+            logger.info(
+                "Scheduled job %s is paused.",
+                job_id,
+            )
+            return
+
+        if not job.is_enabled:
+            logger.info(
+                "Scheduled job %s is disabled.",
+                job_id,
+            )
+            return
+
+        logger.info(
+            "Automatically executing scheduled job: %s",
+            job.name,
+        )
+
+        execution = execute_job_with_history(
             db=db,
             job=job,
         )
 
-        if not reserved:
-            logger.info(
-                "Scheduled execution skipped because "
-                "job %s is already running.",
-                job.id,
+        if execution is None:
+            logger.error(
+                "Scheduled job %s did not create an execution.",
+                job_id,
             )
             return
 
-        started_at = execution.started_at
-
-        logger.info(
-            "Automatically executing job: %s",
-            job.name,
-        )
-
-        result = execute_job(
-            job,
-            execution_id=execution.id,
-        )
-
-        completed_at = datetime.utcnow()
-        duration = (
-            completed_at - started_at
-        ).total_seconds()
-
-        job.status = "Completed"
-        job.result = result
-        job.error_message = None
-        job.completed_at = completed_at
-        job.duration = duration
-
-        execution.status = "Completed"
-        execution.result = result
-        execution.error_message = None
-        execution.completed_at = completed_at
-        execution.duration = duration
-
-        db.commit()
-        db.refresh(execution)
-        write_execution_log(job, execution)
-
-        logger.info(
-            "Scheduled job completed successfully: %s",
-            job.name,
-        )
-    except JobExecutionCancelled as error:
-        db.rollback()
-
-        completed_at = datetime.utcnow()
-
-        try:
-            job = db.query(Job).filter(
-                Job.id == job_id
-            ).first()
-
-            if job:
-                job.status = "Cancelled"
-                job.result = None
-                job.error_message = str(error)
-                job.completed_at = completed_at
-
-                if job.started_at:
-                    job.duration = (
-                        completed_at - job.started_at
-                    ).total_seconds()
-
-            if execution is not None:
-                execution.status = "Cancelled"
-                execution.result = None
-                execution.error_message = str(error)
-                execution.completed_at = completed_at
-
-                if job:
-                    execution.duration = job.duration
-
-            db.commit()
-
-            if execution is not None and job is not None:
-                db.refresh(execution)
-                write_execution_log(job, execution)
-
-        except Exception:
-            db.rollback()
-            logger.exception(
-                "Could not save cancellation details for job %s",
-                job_id,
+        if execution.status == "Completed":
+            logger.info(
+                "Scheduled job completed successfully: %s",
+                job.name,
             )
 
-        logger.info(
-            "Scheduled job cancelled: %s",
-            job_id,
-        )
-
-
-    except Exception as error:
-        db.rollback()
-
-        completed_at = datetime.utcnow()
-
-        try:
-            job = db.query(Job).filter(
-                Job.id == job_id
-            ).first()
-
-            if job:
-                job.status = "Failed"
-                job.result = None
-                job.error_message = str(error)
-                job.completed_at = completed_at
-
-                if job.started_at:
-                    job.duration = (
-                        completed_at - job.started_at
-                    ).total_seconds()
-
-            if execution is not None:
-                execution.status = "Failed"
-                execution.result = None
-                execution.error_message = str(error)
-                execution.completed_at = completed_at
-
-                if job:
-                    execution.duration = job.duration
-
-            db.commit()
-
-            if execution is not None and job is not None:
-                db.refresh(execution)
-                write_execution_log(job, execution)
-
-        except Exception:
-            db.rollback()
-            logger.exception(
-                "Could not save failure details for job %s",
-                job_id,
+        elif execution.status == "Running":
+            logger.info(
+                "Scheduled execution skipped because job %s "
+                "is already running.",
+                job.id,
             )
+
+        else:
+            logger.warning(
+                "Scheduled job %s finished with status %s: %s",
+                job.id,
+                execution.status,
+                execution.error_message or "No error message.",
+            )
+
+    except Exception:
+        db.rollback()
 
         logger.exception(
-            "Scheduled job failed: %s",
+            "Scheduled job execution failed unexpectedly: %s",
             job_id,
         )
 
