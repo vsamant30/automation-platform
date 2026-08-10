@@ -7,6 +7,7 @@ import time
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 
 DEFAULT_EXECUTION_TIMEOUT_SECONDS = 900
@@ -25,6 +26,37 @@ class ExecutionResult:
     error: str
 
 
+def _get_python_executable() -> str:
+    """
+    Return the normal Python interpreter.
+
+    Windows services run inside pythonservice.exe,
+    which cannot execute ordinary Python scripts.
+    """
+    current_executable = Path(
+        sys.executable
+    ).resolve()
+
+    if current_executable.name.lower() in {
+        "python.exe",
+        "python3.exe",
+    }:
+        return str(current_executable)
+
+    python_executable = (
+        current_executable.parent
+        / "python.exe"
+    )
+
+    if python_executable.is_file():
+        return str(python_executable)
+
+    raise RuntimeError(
+        "A usable Python interpreter could not be "
+        f"resolved from {current_executable}."
+    )
+
+
 def _build_command(
     script_type: str,
     script_path: str,
@@ -35,7 +67,7 @@ def _build_command(
 
     if cleaned_script_type == "python":
         return [
-            sys.executable,
+            _get_python_executable(),
             script_path,
         ]
 
