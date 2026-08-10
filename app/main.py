@@ -1,7 +1,5 @@
 import json
 import os
-import shutil
-
 from datetime import datetime
 from threading import Lock, Thread
 from uuid import uuid4
@@ -61,6 +59,9 @@ from app.scheduler.scheduler import (
     sync_job_schedule,
 )
 
+from app.services.script_upload_validator import (
+    validate_script_upload,
+)
 from app.services.audit_service import log_audit_event
 from app.services.execution_logger import (
     get_execution_log_path,
@@ -457,13 +458,19 @@ def upload_script(
 ):
     db = SessionLocal()
 
+    destination_path: str | None = None
+
     try:
         current_user = get_current_user_from_cookie(
             request,
             db,
         )
 
-       
+        if not current_user:
+            return RedirectResponse(
+                url="/login-page",
+                status_code=303,
+            )
 
         require_admin(current_user)
 
@@ -486,75 +493,66 @@ def upload_script(
                     "script_type": script_type,
                 },
                 status_code=400,
-         )
+            )
 
         cleaned_description = description.strip()
-        cleaned_script_type = script_type.strip().lower()
 
-        if not cleaned_job_name:
-            return RedirectResponse(
-                url="/upload-script",
-                status_code=303,
+        try:
+            validated_upload = validate_script_upload(
+                script_type=script_type,
+                filename=script_file.filename,
+                file_object=script_file.file,
             )
 
-        allowed_extensions = {
-            "python": ".py",
-            "powershell": ".ps1",
-            "batch": (".bat", ".cmd"),
-        }
-
-        if cleaned_script_type not in allowed_extensions:
-            return RedirectResponse(
-                url="/upload-script",
-                status_code=303,
+        except ValueError as error:
+            return templates.TemplateResponse(
+                request=request,
+                name="upload_script.html",
+                context={
+                    "request": request,
+                    "current_user": current_user,
+                    "validation_error": str(error),
+                    "job_name": job_name,
+                    "description": description,
+                    "script_type": script_type,
+                },
+                status_code=400,
             )
 
-        original_filename = os.path.basename(
-            script_file.filename or ""
+        cleaned_script_type = (
+            validated_upload.script_type
         )
 
-        file_extension = os.path.splitext(
-            original_filename
-        )[1].lower()
+        original_filename = (
+            validated_upload.original_filename
+        )
 
-        expected_extension = allowed_extensions[
-            cleaned_script_type
-        ]
-
-        if isinstance(expected_extension, tuple):
-            extension_is_valid = (
-                file_extension in expected_extension
-            )
-        else:
-            extension_is_valid = (
-                file_extension == expected_extension
-            )
-
-        if not extension_is_valid:
-            return RedirectResponse(
-                url="/upload-script",
-                status_code=303,
-            )
+        file_extension = (
+            validated_upload.file_extension
+        )
 
         safe_filename = "".join(
             character
-            if character.isalnum() or character in "._-"
+            if character.isalnum()
+            or character in "._-"
             else "_"
             for character in original_filename
         )
 
-        if not safe_filename:
-            return RedirectResponse(
-                url="/upload-script",
-                status_code=303,
-            )
+        upload_directory = os.path.abspath(
+            "uploads"
+        )
 
-        upload_directory = os.path.abspath("uploads")
-        os.makedirs(upload_directory, exist_ok=True)
+        os.makedirs(
+            upload_directory,
+            exist_ok=True,
+        )
 
-        filename_without_extension = os.path.splitext(
-            safe_filename
-        )[0]
+        filename_without_extension = (
+            os.path.splitext(
+                safe_filename
+            )[0]
+        )
 
         unique_filename = (
             f"{filename_without_extension}_"
@@ -566,11 +564,13 @@ def upload_script(
             upload_directory,
             unique_filename,
         )
-        
-        with open(destination_path, "wb") as destination_file:
-            shutil.copyfileobj(
-                script_file.file,
-                destination_file,
+
+        with open(
+            destination_path,
+            "wb",
+        ) as destination_file:
+            destination_file.write(
+                validated_upload.content
             )
 
         new_job = Job(
@@ -604,6 +604,9 @@ def upload_script(
         )
 
         db.commit()
+
+        destination_path = None
+
         db.refresh(new_job)
 
         return RedirectResponse(
@@ -613,12 +616,18 @@ def upload_script(
 
     except Exception:
         db.rollback()
+
+        if (
+            destination_path is not None
+            and os.path.isfile(destination_path)
+        ):
+            os.remove(destination_path)
+
         raise
 
     finally:
         script_file.file.close()
         db.close()
-
 
 
 @app.post(
