@@ -1,4 +1,12 @@
+import logging
 from datetime import datetime, timedelta
+
+from app.services.email_service import (
+    send_job_execution_notification,
+)
+from app.services.execution_logger import (
+    write_execution_log,
+)
 
 from app.db.database import SessionLocal
 from app.db.models import (
@@ -7,6 +15,8 @@ from app.db.models import (
     Job,
     JobExecution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_agent_jobs() -> list[AgentJob]:
@@ -137,6 +147,39 @@ def queue_job_for_agent(
                     f"to job: {job_id}"
                 )
 
+            if execution.status not in {
+                "Queued",
+                "Pending",
+            }:
+                raise ValueError(
+                    "Job execution must be Queued or "
+                    "Pending before remote queueing."
+                )
+
+        else:
+            execution = JobExecution(
+                job_id=job.id,
+                job_name=job.name,
+                status="Queued",
+                result=None,
+                error_message=None,
+                started_at=None,
+                completed_at=None,
+                duration=None,
+            )
+
+            db.add(execution)
+            db.flush()
+
+            job_execution_id = execution.id
+
+        job.status = "Queued"
+        job.result = None
+        job.error_message = None
+        job.started_at = None
+        job.completed_at = None
+        job.duration = None
+
         agent_job = AgentJob(
             agent_id=agent.id,
             job_id=job.id,
@@ -224,15 +267,82 @@ def claim_next_agent_job(
         db.close()
 
 
+def _get_or_create_linked_execution(
+    *,
+    db,
+    agent_job: AgentJob,
+) -> tuple[Job, JobExecution]:
+    """
+    Return the platform job and standard execution
+    linked to a remote-agent queue record.
+
+    Legacy queue records without a linked execution
+    receive one automatically.
+    """
+    job = (
+        db.query(Job)
+        .filter(Job.id == agent_job.job_id)
+        .first()
+    )
+
+    if job is None:
+        raise ValueError(
+            f"Job not found: {agent_job.job_id}"
+        )
+
+    execution = None
+
+    if agent_job.job_execution_id is not None:
+        execution = (
+            db.query(JobExecution)
+            .filter(
+                JobExecution.id
+                == agent_job.job_execution_id
+            )
+            .first()
+        )
+
+        if execution is None:
+            raise ValueError(
+                "Linked job execution was not found: "
+                f"{agent_job.job_execution_id}"
+            )
+
+        if execution.job_id != job.id:
+            raise ValueError(
+                "Linked job execution does not belong "
+                f"to job: {job.id}"
+            )
+
+    else:
+        execution = JobExecution(
+            job_id=job.id,
+            job_name=agent_job.job_name,
+            status=agent_job.status,
+            result=agent_job.result,
+            error_message=agent_job.error_message,
+            started_at=agent_job.started_at,
+            completed_at=agent_job.completed_at,
+            duration=None,
+        )
+
+        db.add(execution)
+        db.flush()
+
+        agent_job.job_execution_id = execution.id
+
+    return job, execution
+
+
 def mark_agent_job_running(
     *,
     agent_job_id: int,
     agent_id: int,
 ) -> AgentJob:
     """
-    Mark a claimed remote job as running.
+    Mark a claimed remote job and its linked standard
+    execution history as running.
     """
-
     db = SessionLocal()
 
     try:
@@ -256,8 +366,31 @@ def mark_agent_job_running(
                 "it can be marked Running."
             )
 
+        job, execution = (
+            _get_or_create_linked_execution(
+                db=db,
+                agent_job=agent_job,
+            )
+        )
+
+        started_at = datetime.utcnow()
+
         agent_job.status = "Running"
-        agent_job.started_at = datetime.utcnow()
+        agent_job.started_at = started_at
+
+        job.status = "Running"
+        job.started_at = started_at
+        job.completed_at = None
+        job.duration = None
+        job.result = None
+        job.error_message = None
+
+        execution.status = "Running"
+        execution.started_at = started_at
+        execution.completed_at = None
+        execution.duration = None
+        execution.result = None
+        execution.error_message = None
 
         db.commit()
         db.refresh(agent_job)
@@ -273,6 +406,43 @@ def mark_agent_job_running(
         db.close()
 
 
+def _publish_remote_execution_outputs(
+    *,
+    job: Job,
+    execution: JobExecution,
+) -> None:
+    """
+    Write the standard execution log and send the
+    configured notification without making the
+    agent callback fail if either output fails.
+    """
+    try:
+        write_execution_log(
+            job,
+            execution,
+        )
+
+    except Exception:
+        logger.exception(
+            "Could not write execution log for "
+            "remote execution %s.",
+            execution.id,
+        )
+
+    try:
+        send_job_execution_notification(
+            job=job,
+            execution=execution,
+        )
+
+    except Exception:
+        logger.exception(
+            "Could not send notification for "
+            "remote execution %s.",
+            execution.id,
+        )
+
+
 def complete_agent_job(
     *,
     agent_job_id: int,
@@ -280,9 +450,9 @@ def complete_agent_job(
     result: str | None = None,
 ) -> AgentJob:
     """
-    Mark a running remote job as completed.
+    Complete a remote job and synchronize its linked
+    standard execution history.
     """
-
     db = SessionLocal()
 
     try:
@@ -306,13 +476,60 @@ def complete_agent_job(
                 "it can be completed."
             )
 
+        job, execution = (
+            _get_or_create_linked_execution(
+                db=db,
+                agent_job=agent_job,
+            )
+        )
+
+        completed_at = datetime.utcnow()
+
+        started_at = (
+            execution.started_at
+            or agent_job.started_at
+            or agent_job.claimed_at
+            or agent_job.queued_at
+            or completed_at
+        )
+
+        duration = max(
+            (
+                completed_at - started_at
+            ).total_seconds(),
+            0,
+        )
+
         agent_job.status = "Completed"
         agent_job.result = result
         agent_job.error_message = None
-        agent_job.completed_at = datetime.utcnow()
+        agent_job.completed_at = completed_at
+
+        job.status = "Completed"
+        job.started_at = started_at
+        job.completed_at = completed_at
+        job.duration = duration
+        job.result = result
+        job.error_message = None
+
+        execution.status = "Completed"
+        execution.started_at = started_at
+        execution.completed_at = completed_at
+        execution.duration = duration
+        execution.result = result
+        execution.error_message = None
 
         db.commit()
+
+        db.refresh(job)
+        db.refresh(execution)
         db.refresh(agent_job)
+
+        _publish_remote_execution_outputs(
+            job=job,
+            execution=execution,
+        )
+
         db.expunge(agent_job)
 
         return agent_job
@@ -333,9 +550,9 @@ def fail_agent_job(
     result: str | None = None,
 ) -> AgentJob:
     """
-    Mark a claimed or running remote job as failed.
+    Fail a claimed or running remote job and synchronize
+    its linked standard execution history.
     """
-
     cleaned_error = error_message.strip()
 
     if not cleaned_error:
@@ -369,13 +586,60 @@ def fail_agent_job(
                 "before it can fail."
             )
 
+        job, execution = (
+            _get_or_create_linked_execution(
+                db=db,
+                agent_job=agent_job,
+            )
+        )
+
+        completed_at = datetime.utcnow()
+
+        started_at = (
+            execution.started_at
+            or agent_job.started_at
+            or agent_job.claimed_at
+            or agent_job.queued_at
+            or completed_at
+        )
+
+        duration = max(
+            (
+                completed_at - started_at
+            ).total_seconds(),
+            0,
+        )
+
         agent_job.status = "Failed"
         agent_job.result = result
         agent_job.error_message = cleaned_error
-        agent_job.completed_at = datetime.utcnow()
+        agent_job.completed_at = completed_at
+
+        job.status = "Failed"
+        job.started_at = started_at
+        job.completed_at = completed_at
+        job.duration = duration
+        job.result = result
+        job.error_message = cleaned_error
+
+        execution.status = "Failed"
+        execution.started_at = started_at
+        execution.completed_at = completed_at
+        execution.duration = duration
+        execution.result = result
+        execution.error_message = cleaned_error
 
         db.commit()
+
+        db.refresh(job)
+        db.refresh(execution)
         db.refresh(agent_job)
+
+        _publish_remote_execution_outputs(
+            job=job,
+            execution=execution,
+        )
+
         db.expunge(agent_job)
 
         return agent_job
@@ -388,19 +652,18 @@ def fail_agent_job(
         db.close()
 
 
-
 def mark_stale_agent_jobs_failed(
     *,
     claimed_timeout_minutes: int = 5,
     running_timeout_minutes: int = 60,
 ) -> int:
     """
-    Mark stale Claimed or Running agent jobs as Failed.
+    Fail stale Claimed or Running remote jobs and
+    synchronize their standard execution histories.
 
     Claimed jobs use claimed_at.
     Running jobs use started_at.
     """
-
     if claimed_timeout_minutes <= 0:
         raise ValueError(
             "Claimed timeout must be greater than zero."
@@ -455,17 +718,72 @@ def mark_stale_agent_jobs_failed(
             + stale_running_jobs
         )
 
+        completed_outputs: list[
+            tuple[Job, JobExecution]
+        ] = []
+
         for agent_job in stale_jobs:
             previous_status = agent_job.status
 
-            agent_job.status = "Failed"
-            agent_job.error_message = (
+            error_message = (
                 "Remote job timed out while in "
                 f"{previous_status} status."
             )
+
+            job, execution = (
+                _get_or_create_linked_execution(
+                    db=db,
+                    agent_job=agent_job,
+                )
+            )
+
+            started_at = (
+                execution.started_at
+                or agent_job.started_at
+                or agent_job.claimed_at
+                or agent_job.queued_at
+                or current_time
+            )
+
+            duration = max(
+                (
+                    current_time - started_at
+                ).total_seconds(),
+                0,
+            )
+
+            agent_job.status = "Failed"
+            agent_job.error_message = error_message
             agent_job.completed_at = current_time
 
+            job.status = "Failed"
+            job.started_at = started_at
+            job.completed_at = current_time
+            job.duration = duration
+            job.result = agent_job.result
+            job.error_message = error_message
+
+            execution.status = "Failed"
+            execution.started_at = started_at
+            execution.completed_at = current_time
+            execution.duration = duration
+            execution.result = agent_job.result
+            execution.error_message = error_message
+
+            completed_outputs.append(
+                (job, execution)
+            )
+
         db.commit()
+
+        for job, execution in completed_outputs:
+            db.refresh(job)
+            db.refresh(execution)
+
+            _publish_remote_execution_outputs(
+                job=job,
+                execution=execution,
+            )
 
         return len(stale_jobs)
 
