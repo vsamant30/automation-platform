@@ -52,9 +52,11 @@ def prepare_test_database() -> Generator[None, None, None]:
 
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
+    client.cookies.clear()
 
     yield
 
+    client.cookies.clear()
     Base.metadata.drop_all(bind=test_engine)
 
 
@@ -229,11 +231,13 @@ def test_admin_can_disable_job_using_cookie() -> None:
         }
     )
 
+    client.cookies.set(
+        "access_token",
+        token,
+    )
+
     response = client.put(
         f"/jobs/{job.id}/toggle",
-        cookies={
-            "access_token": token,
-        },
         headers={
             "Origin": "http://testserver",
         },
@@ -261,11 +265,13 @@ def test_toggle_unknown_job_returns_404() -> None:
         }
     )
 
+    client.cookies.set(
+        "access_token",
+        token,
+    )
+
     response = client.put(
         "/jobs/99999/toggle",
-        cookies={
-            "access_token": token,
-        },
         headers={
             "Origin": "http://testserver",
         },

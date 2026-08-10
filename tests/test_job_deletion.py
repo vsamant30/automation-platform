@@ -131,14 +131,18 @@ def admin_cookie() -> dict[str, str]:
     }
 
 
+def authenticate_admin(client: TestClient) -> None:
+    client.cookies.update(admin_cookie())
+
+
 def test_job_without_remote_history_is_deleted(
     client: TestClient,
 ) -> None:
     admin, job = create_admin_and_job()
+    authenticate_admin(client)
 
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
-        cookies=admin_cookie(),
         headers={
             "Origin": "http://testserver",
         },
@@ -213,9 +217,10 @@ def test_job_with_remote_history_is_not_deleted(
     finally:
         db.close()
 
+    authenticate_admin(client)
+
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
-        cookies=admin_cookie(),
         headers={
             "Origin": "http://testserver",
         },
@@ -276,9 +281,10 @@ def test_job_with_local_execution_history_is_not_deleted(
     finally:
         db.close()
 
+    authenticate_admin(client)
+
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
-        cookies=admin_cookie(),
         headers={
             "Origin": "http://testserver",
         },
