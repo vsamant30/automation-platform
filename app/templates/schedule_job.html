@@ -1,745 +1,402 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
+{% block title %}Schedule {{ job.name }} | Automation Platform{% endblock %}
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+{% block content %}
+<div class="schedule-job-page">
+    <header class="page-heading">
+        <div>
+            <p class="page-eyebrow">AUTOMATION SCHEDULER</p>
+            <h1>Schedule Job</h1>
+            <p>Configure when and how this automation runs.</p>
+        </div>
 
-    <title>
-        Schedule {{ job.name }} | Automation Platform
-    </title>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 40px;
-            background: #f4f6f8;
-            color: #333;
-        }
-
-        .page-container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            margin-top: 0;
-            margin-bottom: 24px;
-            color: #2d2d2d;
-        }
-
-        /*
-         * Reusable buttons
-         */
-        .btn {
-            display: inline-block;
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition:
-                opacity 0.2s ease,
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: #0d6efd;
-        }
-
-        .btn-success {
-            background: #198754;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        /*
-         * Navigation
-         */
-        .navigation {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        /*
-         * Main card
-         */
-        .schedule-card {
-            padding: 28px;
-            background: white;
-            border: 1px solid #e1e5e9;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 20px;
-            padding-bottom: 18px;
-            margin-bottom: 22px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .job-title {
-            margin: 0;
-            color: #212529;
-            font-size: 24px;
-        }
-
-        .job-subtitle {
-            margin: 7px 0 0;
-            color: #666;
-        }
-
-        .schedule-state {
-            display: inline-block;
-            padding: 6px 11px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .schedule-enabled {
-            color: #146c43;
-            background: #d1e7dd;
-        }
-
-        .schedule-disabled {
-            color: #495057;
-            background: #e9ecef;
-        }
-
-        /*
-         * Current schedule summary
-         */
-        .schedule-summary {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(160px, 1fr));
-            gap: 16px;
-            padding: 18px;
-            margin-bottom: 24px;
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-        }
-
-        .summary-label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .summary-value {
-            color: #222;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-
-        /*
-         * Form
-         */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: bold;
-        }
-
-        .form-help {
-            margin-top: 7px;
-            color: #6c757d;
-            font-size: 13px;
-            line-height: 1.45;
-        }
-
-        input[type="number"],
-        input[type="time"],
-        input[type="text"],
-        select {
-            width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #c9ced4;
-            border-radius: 6px;
-            background: white;
-            font-size: 15px;
-            outline: none;
-        }
-
-        input[type="number"]:focus,
-        input[type="time"]:focus,
-        input[type="text"]:focus,
-        select:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
-        }
-
-        /*
-         * Checkbox
-         */
-        .checkbox-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            margin-bottom: 22px;
-            background: #f8f9fa;
-            border: 1px solid #e1e5e9;
-            border-radius: 8px;
-        }
-
-        .checkbox-card input {
-            width: 18px;
-            height: 18px;
-            margin: 0;
-            cursor: pointer;
-        }
-
-        .checkbox-card label {
-            margin: 0;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /*
-         * Conditional schedule fields
-         */
-        .schedule-field {
-            display: none;
-            padding: 18px;
-            margin-top: 10px;
-            background: #f8fbff;
-            border: 1px solid #d6e8ff;
-            border-radius: 8px;
-        }
-
-        /*
-         * Buttons
-         */
-        .form-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding-top: 22px;
-            margin-top: 25px;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        /*
-         * Responsive layout
-         */
-        @media screen and (max-width: 750px) {
-            body {
-                padding: 24px;
-            }
-
-            .schedule-summary {
-                grid-template-columns: 1fr;
-            }
-
-            .card-header {
-                flex-direction: column;
-            }
-        }
-
-        @media screen and (max-width: 550px) {
-            body {
-                padding: 16px;
-            }
-
-            h1 {
-                font-size: 27px;
-            }
-
-            .navigation,
-            .form-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .navigation .btn,
-            .form-actions .btn {
-                width: 100%;
-                text-align: center;
-            }
-
-            .schedule-card {
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-    <div class="page-container">
-
-        <h1>Schedule Job</h1>
-
-        <div class="navigation">
-
-            <a
-                href="/dashboard"
-                class="btn btn-primary"
-            >
-                ← Dashboard
+        <div class="job-header-actions">
+            <a href="/history" class="btn btn-secondary">
+                Execution History
             </a>
 
             <a
                 href="/jobs/{{ job.id }}/details"
-                class="btn btn-primary"
+                class="btn btn-secondary"
             >
-                ⚙ Job Details
+                Job Details
             </a>
 
-            <a
-                href="/history"
-                class="btn btn-primary"
-            >
-                📜 Execution History
+            <a href="/dashboard" class="btn btn-secondary">
+                Dashboard
             </a>
+        </div>
+    </header>
 
+    <section class="schedule-job-panel">
+        <div class="schedule-job-header">
+            <div class="schedule-job-icon">▣</div>
+
+            <div>
+                <h2>{{ job.name }}</h2>
+                <p>Job #{{ job.id }} · {{ job.script_type or "Unknown" }}</p>
+            </div>
+
+            {% if job.schedule_enabled %}
+            <span class="schedule-state schedule-state-enabled">
+                Scheduling Enabled
+            </span>
+            {% else %}
+            <span class="schedule-state schedule-state-disabled">
+                Scheduling Disabled
+            </span>
+            {% endif %}
         </div>
 
-        <div class="schedule-card">
-
-            <div class="card-header">
-
-                <div>
-                    <h2 class="job-title">
-                        {{ job.name }}
-                    </h2>
-
-                    <p class="job-subtitle">
-                        Configure automatic execution for this job.
-                    </p>
-                </div>
-
-                {% if job.schedule_enabled %}
-
-                <span class="schedule-state schedule-enabled">
-                    Scheduling Enabled
-                </span>
-
-                {% else %}
-
-                <span class="schedule-state schedule-disabled">
-                    Scheduling Disabled
-                </span>
-
-                {% endif %}
-
+        <div class="schedule-current-summary">
+            <div class="schedule-summary-item">
+                <span>Script Type</span>
+                <strong>{{ job.script_type or "-" }}</strong>
             </div>
 
-            <div class="schedule-summary">
-
-                <div>
-                    <span class="summary-label">
-                        Script Type
-                    </span>
-
-                    <div class="summary-value">
-                        {{ job.script_type or "-" }}
-                    </div>
-                </div>
-
-                <div>
-                    <span class="summary-label">
-                        Current Schedule
-                    </span>
-
-                    <div class="summary-value">
-                        {{ job.schedule_type or "manual" }}
-                    </div>
-                </div>
-
-                <div>
-                    <span class="summary-label">
-                        Schedule Value
-                    </span>
-
-                    <div class="summary-value">
-                        {{ job.schedule_value or "-" }}
-                    </div>
-                </div>
-
+            <div class="schedule-summary-item">
+                <span>Current Schedule</span>
+                <strong>{{ job.schedule_type or "manual" }}</strong>
             </div>
 
-            <form
-                method="post"
-                action="/jobs/{{ job.id }}/schedule"
+            <div class="schedule-summary-item">
+                <span>Schedule Value</span>
+                <strong>{{ job.schedule_value or "-" }}</strong>
+            </div>
+
+            <div class="schedule-summary-item">
+                <span>Next Run</span>
+                <strong>{{ job.next_run or "-" }}</strong>
+            </div>
+        </div>
+
+        <form
+            method="post"
+            action="/jobs/{{ job.id }}/schedule"
+            id="scheduleJobForm"
+            class="schedule-job-form"
+        >
+            <label
+                for="schedule_enabled"
+                class="schedule-enable-control"
             >
+                <span>
+                    <strong>Enable automatic scheduling</strong>
+                    <small>
+                        Allow the scheduler to run this job automatically.
+                    </small>
+                </span>
 
-                <div class="checkbox-card">
-
+                <span class="switch-control">
                     <input
                         type="checkbox"
                         id="schedule_enabled"
                         name="schedule_enabled"
                         {% if job.schedule_enabled %}checked{% endif %}
                     >
+                    <span class="switch-slider"></span>
+                </span>
+            </label>
 
-                    <label for="schedule_enabled">
-                        Enable automatic scheduling
-                    </label>
-
+            <div class="schedule-form-section">
+                <div class="schedule-form-heading">
+                    <div>
+                        <h3>Schedule Configuration</h3>
+                        <p>
+                            Select a schedule type and provide its required
+                            value.
+                        </p>
+                    </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-field">
+                    <label for="schedule_type">Schedule Type</label>
 
-                    <label
-                        for="schedule_type"
-                        class="form-label"
-                    >
-                        Schedule Type
-                    </label>
-
-                    <select
-                        id="schedule_type"
-                        name="schedule_type"
-                        onchange="showScheduleField()"
-                    >
-
+                    <select id="schedule_type" name="schedule_type">
                         <option
                             value="manual"
-                            {% if job.schedule_type == "manual" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "manual" %}selected{% endif %}
                         >
                             Manual
                         </option>
 
                         <option
                             value="interval"
-                            {% if job.schedule_type == "interval" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "interval" %}selected{% endif %}
                         >
                             Every X Minutes
                         </option>
 
                         <option
                             value="hourly"
-                            {% if job.schedule_type == "hourly" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "hourly" %}selected{% endif %}
                         >
                             Hourly
                         </option>
 
                         <option
                             value="daily"
-                            {% if job.schedule_type == "daily" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "daily" %}selected{% endif %}
                         >
                             Daily
                         </option>
 
                         <option
                             value="weekly"
-                            {% if job.schedule_type == "weekly" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "weekly" %}selected{% endif %}
                         >
                             Weekly
                         </option>
 
                         <option
                             value="cron"
-                            {% if job.schedule_type == "cron" %}
-                                selected
-                            {% endif %}
+                            {% if job.schedule_type == "cron" %}selected{% endif %}
                         >
                             Cron Expression
                         </option>
-
                     </select>
 
-                    <div class="form-help">
-                        Select how frequently this automation should run.
-                    </div>
+                    <small>
+                        Choose how frequently this automation should run.
+                    </small>
+                </div>
 
+                <div
+                    id="manual_field"
+                    class="schedule-dynamic-field"
+                >
+                    <div class="schedule-information">
+                        <span class="schedule-information-icon">i</span>
+
+                        <div>
+                            <strong>Manual execution</strong>
+                            <p>
+                                Automatic scheduling will be disabled. The
+                                job can still be started from the Dashboard
+                                or Job Details page.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div
                     id="interval_field"
-                    class="form-group schedule-field"
+                    class="schedule-dynamic-field"
                 >
+                    <div class="form-field">
+                        <label for="interval_minutes">
+                            Interval in Minutes
+                        </label>
 
-                    <label
-                        for="interval_minutes"
-                        class="form-label"
-                    >
-                        Interval in Minutes
-                    </label>
-
-                    <input
-                        type="number"
-                        id="interval_minutes"
-                        name="interval_minutes"
-                        min="1"
-                        placeholder="Example: 5"
-                        {% if job.schedule_type == "interval" and job.schedule_value %}
+                        <input
+                            type="number"
+                            id="interval_minutes"
+                            name="interval_minutes"
+                            min="1"
+                            step="1"
+                            placeholder="Example: 5"
+                            {% if job.schedule_type == "interval" and job.schedule_value %}
                             value="{{ job.schedule_value }}"
-                        {% endif %}
-                    >
+                            {% endif %}
+                        >
 
-                    <div class="form-help">
-                        The job will run repeatedly after this many minutes.
+                        <small>
+                            The job runs repeatedly after this many minutes.
+                        </small>
                     </div>
-
                 </div>
 
                 <div
                     id="time_field"
-                    class="form-group schedule-field"
+                    class="schedule-dynamic-field"
                 >
+                    <div class="form-field">
+                        <label for="schedule_time">Execution Time</label>
 
-                    <label
-                        for="schedule_time"
-                        class="form-label"
-                    >
-                        Execution Time
-                    </label>
-
-                    <input
-                        type="time"
-                        id="schedule_time"
-                        name="schedule_time"
-                        {% if job.schedule_type in ["hourly", "daily"] and job.schedule_value %}
+                        <input
+                            type="time"
+                            id="schedule_time"
+                            name="schedule_time"
+                            {% if job.schedule_type in ["hourly", "daily"] and job.schedule_value %}
                             value="{{ job.schedule_value }}"
-                        {% elif job.schedule_type == "weekly" and job.schedule_value %}
+                            {% elif job.schedule_type == "weekly" and job.schedule_value %}
                             value="{{ job.schedule_value.split('|')[-1] }}"
-                        {% endif %}
-                    >
+                            {% endif %}
+                        >
 
+                        <small>
+                            Select the local server time for execution.
+                        </small>
+                    </div>
                 </div>
 
                 <div
                     id="weekly_field"
-                    class="form-group schedule-field"
+                    class="schedule-dynamic-field"
                 >
-
-                    <label
-                        for="schedule_day"
-                        class="form-label"
-                    >
-                        Day of Week
-                    </label>
-
                     {% set selected_day = "" %}
 
                     {% if job.schedule_type == "weekly" and job.schedule_value %}
                         {% set selected_day = job.schedule_value.split('|')[0] %}
                     {% endif %}
 
-                    <select
-                        id="schedule_day"
-                        name="schedule_day"
-                    >
-                        <option
-                            value="mon"
-                            {% if selected_day == "mon" %}selected{% endif %}
-                        >
-                            Monday
-                        </option>
+                    <div class="form-field">
+                        <label for="schedule_day">Day of Week</label>
 
-                        <option
-                            value="tue"
-                            {% if selected_day == "tue" %}selected{% endif %}
-                        >
-                            Tuesday
-                        </option>
+                        <select id="schedule_day" name="schedule_day">
+                            {% set weekdays = [
+                                ("mon", "Monday"),
+                                ("tue", "Tuesday"),
+                                ("wed", "Wednesday"),
+                                ("thu", "Thursday"),
+                                ("fri", "Friday"),
+                                ("sat", "Saturday"),
+                                ("sun", "Sunday")
+                            ] %}
 
-                        <option
-                            value="wed"
-                            {% if selected_day == "wed" %}selected{% endif %}
-                        >
-                            Wednesday
-                        </option>
-
-                        <option
-                            value="thu"
-                            {% if selected_day == "thu" %}selected{% endif %}
-                        >
-                            Thursday
-                        </option>
-
-                        <option
-                            value="fri"
-                            {% if selected_day == "fri" %}selected{% endif %}
-                        >
-                            Friday
-                        </option>
-
-                        <option
-                            value="sat"
-                            {% if selected_day == "sat" %}selected{% endif %}
-                        >
-                            Saturday
-                        </option>
-
-                        <option
-                            value="sun"
-                            {% if selected_day == "sun" %}selected{% endif %}
-                        >
-                            Sunday
-                        </option>
-                    </select>
-
+                            {% for day_value, day_label in weekdays %}
+                            <option
+                                value="{{ day_value }}"
+                                {% if selected_day == day_value %}selected{% endif %}
+                            >
+                                {{ day_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
                 <div
                     id="cron_field"
-                    class="form-group schedule-field"
+                    class="schedule-dynamic-field"
                 >
+                    <div class="form-field">
+                        <label for="cron_expression">
+                            Cron Expression
+                        </label>
 
-                    <label
-                        for="cron_expression"
-                        class="form-label"
-                    >
-                        Cron Expression
-                    </label>
-
-                    <input
-                        type="text"
-                        id="cron_expression"
-                        name="cron_expression"
-                        placeholder="Example: 0 9 * * 1-5"
-                        {% if job.schedule_type == "cron" and job.schedule_value %}
+                        <input
+                            type="text"
+                            id="cron_expression"
+                            name="cron_expression"
+                            placeholder="Example: 0 9 * * 1-5"
+                            {% if job.schedule_type == "cron" and job.schedule_value %}
                             value="{{ job.schedule_value }}"
-                        {% endif %}
-                    >
+                            {% endif %}
+                        >
 
-                    <div class="form-help">
-                        Use a standard five-field cron expression:
-                        minute, hour, day, month, weekday.
+                        <small>
+                            Five fields: minute, hour, day, month and
+                            weekday.
+                        </small>
                     </div>
-
                 </div>
+            </div>
 
-                <div class="form-actions">
+            <div class="schedule-form-actions">
+                <a
+                    href="/jobs/{{ job.id }}/details"
+                    class="btn btn-secondary"
+                >
+                    Cancel
+                </a>
 
-                    <button
-                        type="submit"
-                        class="btn btn-success"
-                    >
-                        Save Schedule
-                    </button>
+                <button type="submit" class="btn btn-primary">
+                    Save Schedule
+                </button>
+            </div>
+        </form>
+    </section>
+</div>
+{% endblock %}
 
-                    <a
-                        href="/jobs/{{ job.id }}/details"
-                        class="btn btn-secondary"
-                    >
-                        Cancel
-                    </a>
+{% block scripts %}
+<script>
+    const scheduleTypeInput =
+        document.getElementById("schedule_type");
 
-                </div>
+    const scheduleEnabledInput =
+        document.getElementById("schedule_enabled");
 
-            </form>
+    const scheduleFields = {
+        manual: document.getElementById("manual_field"),
+        interval: document.getElementById("interval_field"),
+        time: document.getElementById("time_field"),
+        weekly: document.getElementById("weekly_field"),
+        cron: document.getElementById("cron_field")
+    };
 
-        </div>
+    const intervalInput =
+        document.getElementById("interval_minutes");
 
-    </div>
+    const timeInput =
+        document.getElementById("schedule_time");
 
-    <script>
-        function hideAllFields() {
-            document.getElementById(
-                "interval_field"
-            ).style.display = "none";
+    const cronInput =
+        document.getElementById("cron_expression");
 
-            document.getElementById(
-                "time_field"
-            ).style.display = "none";
+    function hideScheduleFields() {
+        Object.values(scheduleFields).forEach((field) => {
+            field.hidden = true;
+        });
 
-            document.getElementById(
-                "weekly_field"
-            ).style.display = "none";
+        intervalInput.required = false;
+        timeInput.required = false;
+        cronInput.required = false;
+    }
 
-            document.getElementById(
-                "cron_field"
-            ).style.display = "none";
+    function updateScheduleFields() {
+        hideScheduleFields();
+
+        const scheduleType = scheduleTypeInput.value;
+
+        if (scheduleType === "manual") {
+            scheduleFields.manual.hidden = false;
+            scheduleEnabledInput.checked = false;
+            return;
         }
 
-        function showScheduleField() {
-            hideAllFields();
-
-            const scheduleType =
-                document.getElementById("schedule_type").value;
-
-            if (scheduleType === "interval") {
-                document.getElementById(
-                    "interval_field"
-                ).style.display = "block";
-            }
-
-            if (
-                scheduleType === "daily" ||
-                scheduleType === "hourly"
-            ) {
-                document.getElementById(
-                    "time_field"
-                ).style.display = "block";
-            }
-
-            if (scheduleType === "weekly") {
-                document.getElementById(
-                    "weekly_field"
-                ).style.display = "block";
-
-                document.getElementById(
-                    "time_field"
-                ).style.display = "block";
-            }
-
-            if (scheduleType === "cron") {
-                document.getElementById(
-                    "cron_field"
-                ).style.display = "block";
-            }
+        if (scheduleType === "interval") {
+            scheduleFields.interval.hidden = false;
+            intervalInput.required = true;
         }
 
-        showScheduleField();
-    </script>
+        if (
+            scheduleType === "hourly" ||
+            scheduleType === "daily"
+        ) {
+            scheduleFields.time.hidden = false;
+            timeInput.required = true;
+        }
 
-</body>
+        if (scheduleType === "weekly") {
+            scheduleFields.weekly.hidden = false;
+            scheduleFields.time.hidden = false;
+            timeInput.required = true;
+        }
 
-</html>
+        if (scheduleType === "cron") {
+            scheduleFields.cron.hidden = false;
+            cronInput.required = true;
+        }
+    }
+
+    scheduleTypeInput.addEventListener(
+        "change",
+        updateScheduleFields
+    );
+
+    scheduleEnabledInput.addEventListener("change", () => {
+        if (
+            scheduleEnabledInput.checked &&
+            scheduleTypeInput.value === "manual"
+        ) {
+            scheduleTypeInput.value = "interval";
+            updateScheduleFields();
+        }
+    });
+
+    updateScheduleFields();
+</script>
+{% endblock %}
