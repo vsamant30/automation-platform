@@ -479,10 +479,36 @@ Dashboard
 
         <h2>Job Status Overview</h2>
 
-        <canvas
-            id="jobStatusChart"
-            height="110"
-        ></canvas>
+        <div class="job-status-chart-layout">
+
+            <div class="job-status-chart-canvas">
+                <canvas id="jobStatusChart"></canvas>
+            </div>
+
+            <div class="job-status-chart-legend" aria-label="Job status totals">
+                <div class="job-status-legend-item job-status-legend-completed">
+                    <span class="job-status-legend-dot"></span>
+                    <span>Completed</span>
+                    <strong id="chartCompletedCount">0</strong>
+                </div>
+                <div class="job-status-legend-item job-status-legend-running">
+                    <span class="job-status-legend-dot"></span>
+                    <span>Running</span>
+                    <strong id="chartRunningCount">0</strong>
+                </div>
+                <div class="job-status-legend-item job-status-legend-scheduled">
+                    <span class="job-status-legend-dot"></span>
+                    <span>Scheduled</span>
+                    <strong id="chartScheduledCount">0</strong>
+                </div>
+                <div class="job-status-legend-item job-status-legend-failed">
+                    <span class="job-status-legend-dot"></span>
+                    <span>Failed</span>
+                    <strong id="chartFailedCount">0</strong>
+                </div>
+            </div>
+
+        </div>
 
         <div
             id="lastUpdatedTime"
@@ -2213,7 +2239,16 @@ document.getElementById("failedJobsCount").textContent =
     data.statistics.scheduled_jobs,
     data.statistics.failed_jobs
 
-];
+    ];
+
+    document.getElementById("chartCompletedCount").textContent =
+        data.statistics.completed_jobs;
+    document.getElementById("chartRunningCount").textContent =
+        data.statistics.running_jobs;
+    document.getElementById("chartScheduledCount").textContent =
+        data.statistics.scheduled_jobs;
+    document.getElementById("chartFailedCount").textContent =
+        data.statistics.failed_jobs;
 
 jobStatusChart.update();
 
@@ -2541,9 +2576,6 @@ displayCurrentPage();
 const chartContext =
     document.getElementById("jobStatusChart");
 
-chartContext.width = 380;
-chartContext.height = 380;
-
 const jobStatusChart = new Chart(chartContext, {
 
     type: "doughnut",
@@ -2594,14 +2626,15 @@ const jobStatusChart = new Chart(chartContext, {
 
 options: {
 
-responsive: false,
+responsive: true,
 
-maintainAspectRatio: true,
+maintainAspectRatio: false,
+cutout: "68%",
     plugins: {
 
         legend: {
 
-            position: "bottom"
+            display: false
 
         }
 

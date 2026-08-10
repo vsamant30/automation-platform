@@ -1168,13 +1168,7 @@ Agent / Worker Status
 
 
 #jobStatusChart {
-
-    width: 180px !important;
-    height: 180px !important;
-    max-width: 100%;
-    margin: 0 auto;
     display: block;
-
 }
 
 /* ===========================
@@ -7459,5 +7453,87 @@ body.login-page {
     .execution-detail-actions .btn {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* Readable dashboard job-status summary */
+.chart-card {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+}
+
+.job-status-chart-layout {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.job-status-chart-canvas {
+    position: relative;
+    width: 150px;
+    height: 150px;
+}
+
+#jobStatusChart {
+    width: 150px !important;
+    height: 150px !important;
+}
+
+.job-status-chart-legend {
+    display: grid;
+    gap: 8px;
+}
+
+.job-status-legend-item {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 5px 8px;
+    color: var(--ui-text-muted);
+    background: var(--ui-surface-muted);
+    border: 1px solid var(--ui-border);
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.job-status-legend-item strong {
+    color: var(--ui-text);
+    font-size: 14px;
+}
+
+.job-status-legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.job-status-legend-completed .job-status-legend-dot { background: #198754; }
+.job-status-legend-running .job-status-legend-dot { background: #ffc107; }
+.job-status-legend-scheduled .job-status-legend-dot { background: #6f42c1; }
+.job-status-legend-failed .job-status-legend-dot { background: #dc3545; }
+
+.chart-card .last-updated-time {
+    margin-top: 12px;
+    color: var(--ui-text-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+@media (max-width: 1200px) {
+    .job-status-chart-layout {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        width: 100%;
+    }
+
+    .job-status-chart-legend {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
     }
 }
