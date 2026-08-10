@@ -294,3 +294,165 @@ def test_stale_claim_updates_standard_history() -> None:
     assert execution.completed_at is not None
     assert execution.duration is not None
     assert execution.duration >= 0
+
+
+def test_wrong_agent_cannot_change_remote_job() -> None:
+    agent_id, agent_job_id = queue_and_claim()
+
+    with pytest.raises(
+        ValueError,
+        match="Agent job not found",
+    ):
+        service.mark_agent_job_running(
+            agent_job_id=agent_job_id,
+            agent_id=agent_id + 999,
+        )
+
+    agent_job, job, execution = get_records(
+        agent_job_id=agent_job_id,
+    )
+
+    assert agent_job.status == "Claimed"
+    assert job.status == "Queued"
+    assert execution.status == "Queued"
+
+
+def test_completion_before_running_is_rejected() -> None:
+    agent_id, agent_job_id = queue_and_claim()
+
+    with pytest.raises(
+        ValueError,
+        match="must be Running",
+    ):
+        service.complete_agent_job(
+            agent_job_id=agent_job_id,
+            agent_id=agent_id,
+            result="Must not be saved.",
+        )
+
+    agent_job, job, execution = get_records(
+        agent_job_id=agent_job_id,
+    )
+
+    assert agent_job.status == "Claimed"
+    assert agent_job.result is None
+
+    assert job.status == "Queued"
+    assert job.result is None
+
+    assert execution.status == "Queued"
+    assert execution.result is None
+
+
+def test_output_failures_do_not_rollback_remote_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent_id, agent_job_id = queue_and_claim()
+
+    service.mark_agent_job_running(
+        agent_job_id=agent_job_id,
+        agent_id=agent_id,
+    )
+
+    monkeypatch.setattr(
+        service,
+        "write_execution_log",
+        MagicMock(
+            side_effect=RuntimeError(
+                "Simulated log failure"
+            )
+        ),
+    )
+
+    monkeypatch.setattr(
+        service,
+        "send_job_execution_notification",
+        MagicMock(
+            side_effect=RuntimeError(
+                "Simulated notification failure"
+            )
+        ),
+    )
+
+    service.fail_agent_job(
+        agent_job_id=agent_job_id,
+        agent_id=agent_id,
+        error_message="Remote process failed.",
+        result="Partial output.",
+    )
+
+    agent_job, job, execution = get_records(
+        agent_job_id=agent_job_id,
+    )
+
+    assert agent_job.status == "Failed"
+    assert job.status == "Failed"
+    assert execution.status == "Failed"
+
+    assert agent_job.error_message == (
+        "Remote process failed."
+    )
+    assert job.error_message == (
+        "Remote process failed."
+    )
+    assert execution.error_message == (
+        "Remote process failed."
+    )
+
+
+def test_stale_running_job_updates_all_records() -> None:
+    agent_id, agent_job_id = queue_and_claim()
+
+    service.mark_agent_job_running(
+        agent_job_id=agent_job_id,
+        agent_id=agent_id,
+    )
+
+    db: Session = TestSessionLocal()
+
+    try:
+        agent_job = db.get(
+            AgentJob,
+            agent_job_id,
+        )
+
+        assert agent_job is not None
+
+        agent_job.started_at = (
+            datetime.utcnow()
+            - timedelta(minutes=90)
+        )
+
+        db.commit()
+
+    finally:
+        db.close()
+
+    failed_count = (
+        service.mark_stale_agent_jobs_failed(
+            claimed_timeout_minutes=5,
+            running_timeout_minutes=60,
+        )
+    )
+
+    assert failed_count == 1
+
+    agent_job, job, execution = get_records(
+        agent_job_id=agent_job_id,
+    )
+
+    expected_error = (
+        "Remote job timed out while in "
+        "Running status."
+    )
+
+    assert agent_job.status == "Failed"
+    assert agent_job.error_message == expected_error
+
+    assert job.status == "Failed"
+    assert job.error_message == expected_error
+    assert job.completed_at is not None
+
+    assert execution.status == "Failed"
+    assert execution.error_message == expected_error
+    assert execution.completed_at is not None
