@@ -1,4 +1,6 @@
 import os
+import secrets
+import warnings
 
 
 class Settings:
@@ -29,9 +31,15 @@ class Settings:
                 "when ENVIRONMENT=production."
             )
 
-        SECRET_KEY = (
-            "change-this-secret-key-before-production"
+        warnings.warn(
+            "SECRET_KEY is not configured. "
+            "A temporary development key was generated; "
+            "browser sessions will be invalid after restart.",
+            RuntimeWarning,
+            stacklevel=2,
         )
+
+        SECRET_KEY = secrets.token_urlsafe(64)
 
     JWT_ALGORITHM = os.getenv(
         "JWT_ALGORITHM",
