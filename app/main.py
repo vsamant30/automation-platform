@@ -38,6 +38,7 @@ from app.core.auth import (
     get_current_user_from_cookie,
     require_admin,
 )
+from app.core.csrf import CSRFMiddleware
 from app.core.exceptions import (
     generic_exception_handler,
     validation_exception_handler,
@@ -199,6 +200,10 @@ compatibility.
         "defaultModelExpandDepth": 1,
         "tryItOutEnabled": True,
     },
+)
+
+app.add_middleware(
+    CSRFMiddleware,
 )
 
 app.add_exception_handler(

@@ -234,6 +234,9 @@ def test_admin_can_disable_job_using_cookie() -> None:
         cookies={
             "access_token": token,
         },
+        headers={
+            "Origin": "http://testserver",
+        },
     )
 
     assert response.status_code == 200
@@ -262,6 +265,9 @@ def test_toggle_unknown_job_returns_404() -> None:
         "/jobs/99999/toggle",
         cookies={
             "access_token": token,
+        },
+        headers={
+            "Origin": "http://testserver",
         },
     )
 

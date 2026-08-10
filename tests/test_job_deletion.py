@@ -139,6 +139,9 @@ def test_job_without_remote_history_is_deleted(
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
         cookies=admin_cookie(),
+        headers={
+            "Origin": "http://testserver",
+        },
         follow_redirects=False,
     )
 
@@ -213,6 +216,9 @@ def test_job_with_remote_history_is_not_deleted(
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
         cookies=admin_cookie(),
+        headers={
+            "Origin": "http://testserver",
+        },
         follow_redirects=False,
     )
 
@@ -273,6 +279,9 @@ def test_job_with_local_execution_history_is_not_deleted(
     response = client.post(
         f"/dashboard/jobs/{job.id}/delete",
         cookies=admin_cookie(),
+        headers={
+            "Origin": "http://testserver",
+        },
         follow_redirects=False,
     )
 
