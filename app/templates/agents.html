@@ -1,580 +1,927 @@
 {% extends "base.html" %}
 
 {% block title %}
-Remote Agents
+Remote Agents | Automation Platform
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+<div class="agents-page">
+
+    <header class="page-header">
         <div>
-            <h1 class="h3 mb-1">Remote Agents</h1>
-            <p class="text-muted mb-0">
-                Monitor registered agents and remote job execution.
+            <span class="page-eyebrow">
+                Distributed execution
+            </span>
+
+            <h1>Remote Agents</h1>
+
+            <p>
+                Monitor connected workers, queue remote jobs,
+                and inspect execution logs.
             </p>
         </div>
 
-        <a href="/dashboard" class="btn btn-outline-secondary">
-            Back to Dashboard
+        <a
+            href="/dashboard"
+            class="ui-button ui-button-secondary"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+            >
+                <path d="m15 18-6-6 6-6"></path>
+            </svg>
+
+            Dashboard
         </a>
-    </div>
+    </header>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Total Agents</div>
-                    <div class="fs-3 fw-semibold">
-                        {{ agents | length }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-<div class="text-muted small">Online Agents</div>
-<div
-    id="onlineAgentCount"
-    class="fs-3 fw-semibold text-success"
->
-    {{
-        agents
-        | selectattr("status", "equalto", "Online")
-        | list
-        | length
-    }}
-</div>
-
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Running Jobs</div>
-                    <div class="fs-3 fw-semibold text-primary">
-                        {{
-                            agent_jobs
-                            | selectattr("status", "equalto", "Running")
-                            | list
-                            | length
-                        }}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="text-muted small">Failed Jobs</div>
-                    <div class="fs-3 fw-semibold text-danger">
-                        {{
-                            agent_jobs
-                            | selectattr("status", "equalto", "Failed")
-                            | list
-                            | length
-                        }}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white">
-            <h2 class="h5 mb-0">Registered Agents</h2>
-        </div>
-
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Hostname</th>
-                            <th>Platform</th>
-                            <th>Status</th>
-                            <th>Enabled</th>
-                            <th>Last Seen</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {% for agent in agents %}
-<tr>
-    <td>{{ agent.id }}</td>
-    <td class="fw-semibold">{{ agent.name }}</td>
-    <td>{{ agent.hostname or "-" }}</td>
-    <td>{{ agent.platform }}</td>
-<td>
-    <span
-        id="agent-status-{{ agent.id }}"
-        class="badge {% if agent.status == 'Online' %}bg-success{% else %}bg-secondary{% endif %}"
+    <section
+        class="agent-stat-grid"
+        aria-label="Remote agent summary"
     >
-        {{ agent.status }}
-    </span>
-</td>
-                                <td>
-                                {% if agent.is_enabled %}
-                                <span class="badge bg-success">
-                                    Enabled
-                                </span>
-                                {% else %}
-                                <span class="badge bg-danger">
-                                    Disabled
-                                </span>
-                                {% endif %}
-                            </td>
-<td id="agent-last-seen-{{ agent.id }}">
-    {{ agent.last_seen_at or "-" }}
-</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                No agents are registered.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <article class="agent-stat-card agent-stat-total">
+            <span class="agent-stat-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect
+                        x="2"
+                        y="4"
+                        width="20"
+                        height="14"
+                        rx="2"
+                    ></rect>
+                    <path d="M8 22h8"></path>
+                    <path d="M12 18v4"></path>
+                </svg>
+            </span>
+
+            <span class="agent-stat-content">
+                <span class="agent-stat-label">
+                    Total Agents
+                </span>
+
+                <strong class="agent-stat-value">
+                    {{ agents | length }}
+                </strong>
+
+                <span class="agent-stat-help">
+                    Registered workers
+                </span>
+            </span>
+        </article>
+
+        <article class="agent-stat-card agent-stat-online">
+            <span class="agent-stat-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="M5 12.55a11 11 0 0 1 14 0"></path>
+                    <path d="M8.5 16a6 6 0 0 1 7 0"></path>
+                    <path d="M12 20h.01"></path>
+                </svg>
+            </span>
+
+            <span class="agent-stat-content">
+                <span class="agent-stat-label">
+                    Online Agents
+                </span>
+
+                <strong
+                    id="onlineAgentCount"
+                    class="agent-stat-value"
+                >
+                    {{
+                        agents
+                        | selectattr(
+                            "status",
+                            "equalto",
+                            "Online"
+                        )
+                        | list
+                        | length
+                    }}
+                </strong>
+
+                <span class="agent-stat-help">
+                    Available now
+                </span>
+            </span>
+        </article>
+
+        <article class="agent-stat-card agent-stat-running">
+            <span class="agent-stat-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="m8 5 11 7-11 7V5Z"></path>
+                </svg>
+            </span>
+
+            <span class="agent-stat-content">
+                <span class="agent-stat-label">
+                    Running Jobs
+                </span>
+
+                <strong class="agent-stat-value">
+                    {{
+                        agent_jobs
+                        | selectattr(
+                            "status",
+                            "equalto",
+                            "Running"
+                        )
+                        | list
+                        | length
+                    }}
+                </strong>
+
+                <span class="agent-stat-help">
+                    Currently executing
+                </span>
+            </span>
+        </article>
+
+        <article class="agent-stat-card agent-stat-failed">
+            <span class="agent-stat-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="m9 9 6 6"></path>
+                    <path d="m15 9-6 6"></path>
+                </svg>
+            </span>
+
+            <span class="agent-stat-content">
+                <span class="agent-stat-label">
+                    Failed Jobs
+                </span>
+
+                <strong class="agent-stat-value">
+                    {{
+                        agent_jobs
+                        | selectattr(
+                            "status",
+                            "equalto",
+                            "Failed"
+                        )
+                        | list
+                        | length
+                    }}
+                </strong>
+
+                <span class="agent-stat-help">
+                    Require attention
+                </span>
+            </span>
+        </article>
+    </section>
+
+    <section class="ui-panel">
+        <div class="ui-panel-header">
+            <div>
+                <h2>Registered Agents</h2>
+
+                <p>
+                    Live availability and configuration of every
+                    registered execution worker.
+                </p>
             </div>
-        </div>
-    </div>
 
-<div class="agent-queue-card">
-
-    <h2>Queue Remote Job</h2>
-
-<form
-    id="queueRemoteJobForm"
-    class="agent-queue-form"
-    action="/agents/queue"
-    method="post"
->
-    <div class="form-group">
-        <label for="agentSelect">
-            Agent
-        </label>
-
-        <select
-            id="agentSelect"
-            name="agent_id"
-            required
-        >
-            <option value="" disabled selected>
-                Select an agent...
-            </option>
-
-            {% for agent in agents %}
-            <option value="{{ agent.id }}">
-                {{ agent.name }}
-                ({{ agent.hostname }})
-                - {{ agent.status }}
-            </option>
-            {% else %}
-            <option value="" disabled>
-                No agents are available.
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label for="jobSelect">
-            Job
-        </label>
-
-        <select
-            id="jobSelect"
-            name="job_id"
-            required
-        >
-            <option value="" disabled selected>
-                Select a job...
-            </option>
-
-            {% for job in jobs %}
-            <option value="{{ job.id }}">
-                {{ job.name }} ({{ job.script_type }})
-            </option>
-            {% else %}
-            <option value="" disabled>
-                No enabled jobs are available.
-            </option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <button
-        type="submit"
-        class="btn btn-primary"
-    >
-        Queue Job
-    </button>
-</form>
-</div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-
-            <h2 class="h5 mb-0">Remote Job Queue</h2>
-
-            <span class="text-muted small">
-                {{ agent_jobs | length }} record(s)
+            <span class="ui-count-badge">
+                {{ agents | length }}
+                agent{% if agents | length != 1 %}s{% endif %}
             </span>
         </div>
 
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Agent Job ID</th>
-                            <th>Agent ID</th>
-                            <th>Job</th>
-                            <th>Script Type</th>
-                            <th>Status</th>
-                            <th>Queued At</th>
-                            <th>Started At</th>
-                            <th>Completed At</th>
-                        </tr>
-                    </thead>
+        <div class="ui-table-scroll">
+            <table class="ui-table agent-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Agent</th>
+                        <th scope="col">Hostname</th>
+                        <th scope="col">Platform</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Availability</th>
+                        <th scope="col">Last Seen</th>
+                    </tr>
+                </thead>
 
-                    <tbody>
+                <tbody>
+                    {% for agent in agents %}
+                    <tr>
+                        <td>
+                            <div class="agent-identity">
+                                <span
+                                    class="agent-avatar"
+                                    aria-hidden="true"
+                                >
+                                    {{ agent.name[0]|upper }}
+                                </span>
 
-                        {% for agent_job in agent_jobs %}
-<tr
-    style="
-        cursor:pointer;
-        {% if selected_agent_job and selected_agent_job.id == agent_job.id %}
-        background-color:#dbeafe;
-        font-weight:600;
-        {% endif %}
-    "
-    onclick="window.location='/agents?agent_job_id={{ agent_job.id }}';"
->
-                            <td>{{ agent_job.id }}</td>
-                            <td>{{ agent_job.agent_id }}</td>
-                            <td>
-                                <div class="fw-semibold">
-                                    {{ agent_job.job_name }}
-                                </div>
-                                <div class="text-muted small">
-                                    Job ID: {{ agent_job.job_id }}
-                                </div>
-                            </td>
-                            <td>{{ agent_job.script_type }}</td>
-                            <td>
-                                {% if agent_job.status == "Completed" %}
-                                <span class="badge bg-success">
-                                    Completed
+                                <span>
+                                    <strong>
+                                        {{ agent.name }}
+                                    </strong>
+
+                                    <small>
+                                        Agent #{{ agent.id }}
+                                    </small>
                                 </span>
-                                {% elif agent_job.status == "Running" %}
-                                <span class="badge bg-primary">
-                                    Running
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="table-primary-text">
+                                {{ agent.hostname or "-" }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="platform-badge">
+                                {{ agent.platform|capitalize }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <span
+                                id="agent-status-{{ agent.id }}"
+                                class="status-badge {% if agent.status == 'Online' %}status-online{% else %}status-offline{% endif %}"
+                            >
+                                <span
+                                    class="status-dot"
+                                    aria-hidden="true"
+                                ></span>
+
+                                {{ agent.status }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {% if agent.is_enabled %}
+                            <span class="status-badge status-enabled">
+                                Enabled
+                            </span>
+                            {% else %}
+                            <span class="status-badge status-disabled">
+                                Disabled
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <time
+                                id="agent-last-seen-{{ agent.id }}"
+                                class="table-date"
+                            >
+                                {{ agent.last_seen_at or "-" }}
+                            </time>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="ui-empty-state">
+                                <strong>
+                                    No agents registered
+                                </strong>
+
+                                <span>
+                                    Registered agents will appear here.
                                 </span>
-                                {% elif agent_job.status == "Failed" %}
-                                <span class="badge bg-danger">
-                                    Failed
-                                </span>
-                                {% elif agent_job.status == "Claimed" %}
-                                <span class="badge bg-warning text-dark">
-                                    Claimed
-                                </span>
-                                {% else %}
-                                <span class="badge bg-secondary">
-                                    {{ agent_job.status }}
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td>{{ agent_job.queued_at or "-" }}</td>
-                            <td>{{ agent_job.started_at or "-" }}</td>
-                            <td>{{ agent_job.completed_at or "-" }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
-                                No remote job records are available.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="agents-workspace-grid">
+
+        <section class="ui-panel queue-panel">
+            <div class="ui-panel-header">
+                <div>
+                    <h2>Queue Remote Job</h2>
+
+                    <p>
+                        Select a worker and an enabled automation job.
+                    </p>
+                </div>
+
+                <span class="panel-header-icon" aria-hidden="true">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="m8 5 11 7-11 7V5Z"></path>
+                    </svg>
+                </span>
             </div>
-        </div>
+
+            <form
+                id="queueRemoteJobForm"
+                class="agent-queue-form"
+                action="/agents/queue"
+                method="post"
+            >
+                <div class="ui-form-group">
+                    <label for="agentSelect">
+                        Agent
+                    </label>
+
+                    <select
+                        id="agentSelect"
+                        name="agent_id"
+                        required
+                    >
+                        <option value="" disabled selected>
+                            Select an agent...
+                        </option>
+
+                        {% for agent in agents %}
+                        <option value="{{ agent.id }}">
+                            {{ agent.name }}
+                            ({{ agent.hostname or "Unknown host" }})
+                            — {{ agent.status }}
+                        </option>
+                        {% else %}
+                        <option value="" disabled>
+                            No agents are available.
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <small>
+                        Choose an online agent whenever possible.
+                    </small>
+                </div>
+
+                <div class="ui-form-group">
+                    <label for="jobSelect">
+                        Automation Job
+                    </label>
+
+                    <select
+                        id="jobSelect"
+                        name="job_id"
+                        required
+                    >
+                        <option value="" disabled selected>
+                            Select a job...
+                        </option>
+
+                        {% for job in jobs %}
+                        <option value="{{ job.id }}">
+                            {{ job.name }}
+                            ({{ job.script_type }})
+                        </option>
+                        {% else %}
+                        <option value="" disabled>
+                            No enabled jobs are available.
+                        </option>
+                        {% endfor %}
+                    </select>
+
+                    <small>
+                        Only enabled jobs with scripts are listed.
+                    </small>
+                </div>
+
+                <button
+                    type="submit"
+                    class="ui-button ui-button-primary ui-button-full"
+                >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path d="m8 5 11 7-11 7V5Z"></path>
+                    </svg>
+
+                    Queue Remote Job
+                </button>
+            </form>
+        </section>
+
+        <section class="ui-panel queue-guidance-panel">
+            <div class="ui-panel-header">
+                <div>
+                    <h2>Execution Flow</h2>
+
+                    <p>
+                        What happens after a job is queued.
+                    </p>
+                </div>
+            </div>
+
+            <ol class="execution-steps">
+                <li>
+                    <span>1</span>
+
+                    <div>
+                        <strong>Queued</strong>
+                        <p>
+                            The request waits for the selected agent.
+                        </p>
+                    </div>
+                </li>
+
+                <li>
+                    <span>2</span>
+
+                    <div>
+                        <strong>Claimed</strong>
+                        <p>
+                            The agent downloads and validates the script.
+                        </p>
+                    </div>
+                </li>
+
+                <li>
+                    <span>3</span>
+
+                    <div>
+                        <strong>Executed</strong>
+                        <p>
+                            Output and errors are streamed into live logs.
+                        </p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
     </div>
-</div>
 
-{% if selected_agent_job %}
+    <section class="ui-panel">
+        <div class="ui-panel-header">
+            <div>
+                <h2>Remote Job Queue</h2>
 
-<div class="card shadow-sm mt-4">
+                <p>
+                    Select a record to view its execution logs.
+                </p>
+            </div>
 
-    <div class="card-header bg-white">
+            <span class="ui-count-badge">
+                {{ agent_jobs | length }}
+                record{% if agent_jobs | length != 1 %}s{% endif %}
+            </span>
+        </div>
 
-        <div>
-            <h2 class="h5 mb-1">
-                Live Logs
-            </h2>
+        <div class="ui-table-scroll">
+            <table class="ui-table remote-job-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Remote Job</th>
+                        <th scope="col">Agent</th>
+                        <th scope="col">Automation Job</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Queued</th>
+                        <th scope="col">Started</th>
+                        <th scope="col">Completed</th>
+                    </tr>
+                </thead>
 
-            <p class="text-muted small mb-0">
-                Agent Job ID:
-                {{ selected_agent_job.id }}
-                |
-                {{ selected_agent_job.job_name }}
-                |
-                Status:
+                <tbody>
+                    {% for agent_job in agent_jobs %}
+                    <tr
+                        class="clickable-table-row {% if selected_agent_job and selected_agent_job.id == agent_job.id %}selected{% endif %}"
+                        tabindex="0"
+                        role="link"
+                        data-agent-job-url="/agents?agent_job_id={{ agent_job.id }}"
+                        aria-label="View logs for remote job {{ agent_job.id }}"
+                    >
+                        <td>
+                            <a
+                                href="/agents?agent_job_id={{ agent_job.id }}"
+                                class="table-record-link"
+                            >
+                                #{{ agent_job.id }}
+                            </a>
+                        </td>
+
+                        <td>
+                            <span class="table-primary-text">
+                                Agent #{{ agent_job.agent_id }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <div class="table-stacked-text">
+                                <strong>
+                                    {{ agent_job.job_name }}
+                                </strong>
+
+                                <small>
+                                    Job #{{ agent_job.job_id }}
+                                </small>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="platform-badge">
+                                {{ agent_job.script_type }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="status-badge status-{{ agent_job.status|lower }}">
+                                <span
+                                    class="status-dot"
+                                    aria-hidden="true"
+                                ></span>
+
+                                {{ agent_job.status }}
+                            </span>
+                        </td>
+
+                        <td>
+                            <time class="table-date">
+                                {{ agent_job.queued_at or "-" }}
+                            </time>
+                        </td>
+
+                        <td>
+                            <time class="table-date">
+                                {{ agent_job.started_at or "-" }}
+                            </time>
+                        </td>
+
+                        <td>
+                            <time class="table-date">
+                                {{ agent_job.completed_at or "-" }}
+                            </time>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="ui-empty-state">
+                                <strong>
+                                    No remote jobs
+                                </strong>
+
+                                <span>
+                                    Queue a job to begin remote execution.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="ui-panel agent-log-panel">
+        <div class="ui-panel-header">
+            <div>
+                <h2>Execution Logs</h2>
+
+                {% if selected_agent_job %}
+                <p>
+                    Remote job #{{ selected_agent_job.id }}
+                    · {{ selected_agent_job.job_name }}
+                </p>
+                {% else %}
+                <p>
+                    Select a remote-job record to inspect its output.
+                </p>
+                {% endif %}
+            </div>
+
+            {% if selected_agent_job %}
+            <span class="status-badge status-{{ selected_agent_job.status|lower }}">
+                <span
+                    class="status-dot"
+                    aria-hidden="true"
+                ></span>
+
                 {{ selected_agent_job.status }}
-            </p>
+            </span>
+            {% endif %}
         </div>
 
-    </div>
-
-    <div class="card-body">
-
+        {% if selected_agent_job %}
         <div
             id="agentJobLogViewer"
-            style="
-                background: #111827;
-                color: #e5e7eb;
-                padding: 16px;
-                border-radius: 8px;
-                min-height: 260px;
-                max-height: 500px;
-                overflow-y: auto;
-                font-family: Consolas, monospace;
-                font-size: 13px;
-                white-space: normal;
-            "
+            class="agent-log-viewer"
+            role="log"
+            aria-live="polite"
         >
-{% for log in agent_job_logs %}
-    {% if log.stream == "stderr" %}
-    <div style="color: #fca5a5; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
-    {% elif log.stream == "stdout" %}
-    <div style="color: #86efac; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
-    {% else %}
-    <div style="color: #93c5fd; white-space: pre-wrap;">[{{ log.sequence }}] [{{ log.stream | upper }}] {{ log.message }}</div>
-    {% endif %}
-{% else %}
-    <div style="color: #9ca3af;">
-        No logs are available for this remote job.
-    </div>
-{% endfor %}
+            {% for log in agent_job_logs %}
+            <div class="agent-log-line log-{{ log.stream }}">
+                <span class="agent-log-number">
+                    {{ log.sequence }}
+                </span>
+
+                <span class="agent-log-stream">
+                    {{ log.stream | upper }}
+                </span>
+
+                <span class="agent-log-message">
+                    {{ log.message }}
+                </span>
+            </div>
+            {% else %}
+            <div class="agent-log-empty">
+                No logs are available for this remote job.
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="ui-empty-state ui-empty-state-large">
+            <span class="empty-state-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path d="m8 9 3 3-3 3"></path>
+                    <path d="M13 15h3"></path>
+                    <rect
+                        x="3"
+                        y="4"
+                        width="18"
+                        height="16"
+                        rx="2"
+                    ></rect>
+                </svg>
+            </span>
+
+            <strong>No execution selected</strong>
+
+            <span>
+                Choose a record from the remote-job queue above.
+            </span>
+        </div>
+        {% endif %}
+    </section>
 
 </div>
 
-    </div>
+{% endblock %}
 
-</div>
-
-{% else %}
-
-<div class="card shadow-sm mt-4">
-
-    <div class="card-body text-center text-muted py-4">
-        No remote job is available for log viewing.
-    </div>
-
-</div>
-
-{% endif %}
+{% block scripts %}
 
 <script>
+    (() => {
+        let lastLogCount = 0;
 
-let lastLogCount = 0;
+        const statusClasses = [
+            "status-online",
+            "status-offline",
+            "status-enabled",
+            "status-disabled",
+            "status-completed",
+            "status-running",
+            "status-failed",
+            "status-claimed",
+            "status-queued"
+        ];
 
+        const openJobRow = (row) => {
+            const destination = row.dataset.agentJobUrl;
 
-async function refreshAgentStatuses() {
+            if (destination) {
+                window.location.href = destination;
+            }
+        };
 
-    try {
+        document
+            .querySelectorAll(".clickable-table-row")
+            .forEach((row) => {
+                row.addEventListener("click", (event) => {
+                    if (event.target.closest("a")) {
+                        return;
+                    }
 
-        const response = await fetch(
-            "/agents/status"
-        );
+                    openJobRow(row);
+                });
 
-        if (!response.ok) {
-            return;
-        }
+                row.addEventListener("keydown", (event) => {
+                    if (
+                        event.key === "Enter"
+                        || event.key === " "
+                    ) {
+                        event.preventDefault();
+                        openJobRow(row);
+                    }
+                });
+            });
 
-        const payload = await response.json();
-
-        if (!payload.success) {
-            return;
-        }
-
-        const onlineAgentCount = payload.data.filter(
-            agent => agent.status === "Online"
-        ).length;
-
-        const onlineAgentCountElement = document.getElementById(
-            "onlineAgentCount"
-        );
-
-        if (onlineAgentCountElement) {
-            onlineAgentCountElement.textContent = onlineAgentCount;
-        }
-
-        for (const agent of payload.data) {
-
-            const statusBadge = document.getElementById(
-                `agent-status-${agent.id}`
-            );
-
-            const lastSeenElement = document.getElementById(
-                `agent-last-seen-${agent.id}`
-            );
-
-            if (lastSeenElement) {
-
-                lastSeenElement.textContent = (
-                    agent.last_seen_at
-                        ? agent.last_seen_at.replace("T", " ")
-                        : "-"
+        async function refreshAgentStatuses() {
+            try {
+                const response = await fetch(
+                    "/agents/status"
                 );
 
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+
+                if (!payload.success) {
+                    return;
+                }
+
+                const onlineCount = payload.data.filter(
+                    (agent) => agent.status === "Online"
+                ).length;
+
+                const countElement = document.getElementById(
+                    "onlineAgentCount"
+                );
+
+                if (countElement) {
+                    countElement.textContent = onlineCount;
+                }
+
+                for (const agent of payload.data) {
+                    const statusBadge =
+                        document.getElementById(
+                            `agent-status-${agent.id}`
+                        );
+
+                    const lastSeenElement =
+                        document.getElementById(
+                            `agent-last-seen-${agent.id}`
+                        );
+
+                    if (lastSeenElement) {
+                        lastSeenElement.textContent =
+                            agent.last_seen_at
+                                ? agent.last_seen_at.replace(
+                                    "T",
+                                    " "
+                                )
+                                : "-";
+                    }
+
+                    if (!statusBadge) {
+                        continue;
+                    }
+
+                    statusBadge.classList.remove(
+                        ...statusClasses
+                    );
+
+                    statusBadge.classList.add(
+                        agent.status === "Online"
+                            ? "status-online"
+                            : "status-offline"
+                    );
+
+                    statusBadge.innerHTML = "";
+
+                    const dot = document.createElement("span");
+                    dot.className = "status-dot";
+                    dot.setAttribute("aria-hidden", "true");
+
+                    statusBadge.appendChild(dot);
+                    statusBadge.append(
+                        document.createTextNode(
+                            agent.status
+                        )
+                    );
+                }
             }
-
-            if (!statusBadge) {
-                continue;
+            catch {
+                // Preserve the last displayed state if polling fails.
             }
+        }
 
-            statusBadge.textContent = agent.status;
-
-            statusBadge.classList.remove(
-                "bg-success",
-                "bg-secondary",
-                "bg-danger"
+        async function refreshLogs() {
+            const viewer = document.getElementById(
+                "agentJobLogViewer"
             );
 
-            if (agent.status === "Online") {
-
-                statusBadge.classList.add(
-                    "bg-success"
-                );
-
-            }
-            else {
-
-                statusBadge.classList.add(
-                    "bg-secondary"
-                );
-
+            if (!viewer) {
+                return;
             }
 
+            const parameters = new URLSearchParams(
+                window.location.search
+            );
+
+            const agentJobId = parameters.get(
+                "agent_job_id"
+            );
+
+            if (!agentJobId) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/v1/agent-jobs/${agentJobId}/logs`
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+
+                if (!payload.success) {
+                    return;
+                }
+
+                const logs = payload.data;
+
+                if (logs.length === lastLogCount) {
+                    return;
+                }
+
+                lastLogCount = logs.length;
+                viewer.innerHTML = "";
+
+                if (logs.length === 0) {
+                    const empty = document.createElement("div");
+                    empty.className = "agent-log-empty";
+                    empty.textContent =
+                        "No logs are available for this remote job.";
+                    viewer.appendChild(empty);
+                    return;
+                }
+
+                for (const log of logs) {
+                    const line = document.createElement("div");
+                    line.className =
+                        `agent-log-line log-${log.stream}`;
+
+                    const number =
+                        document.createElement("span");
+                    number.className = "agent-log-number";
+                    number.textContent = log.sequence;
+
+                    const stream =
+                        document.createElement("span");
+                    stream.className = "agent-log-stream";
+                    stream.textContent =
+                        log.stream.toUpperCase();
+
+                    const message =
+                        document.createElement("span");
+                    message.className = "agent-log-message";
+                    message.textContent = log.message;
+
+                    line.append(
+                        number,
+                        stream,
+                        message
+                    );
+
+                    viewer.appendChild(line);
+                }
+
+                viewer.scrollTop = viewer.scrollHeight;
+            }
+            catch {
+                // Keep existing log output if polling fails.
+            }
         }
 
-    }
-    catch {
-
-    }
-
-}
-
-
-async function refreshLogs() {
-
-    const viewer = document.getElementById(
-        "agentJobLogViewer"
-    );
-
-    if (!viewer) {
-        return;
-    }
-
-const params = new URLSearchParams(window.location.search);
-
-const agentJobId = params.get("agent_job_id");
-
-if (!agentJobId) {
-    return;
-}
-
-    try {
-
-        const response = await fetch(
-            `/api/v1/agent-jobs/${agentJobId}/logs`
+        window.setInterval(
+            refreshLogs,
+            2000
         );
 
-        if (!response.ok) {
-            return;
-        }
+        window.setInterval(
+            refreshAgentStatuses,
+            5000
+        );
 
-        const payload = await response.json();
-
-        if (!payload.success) {
-            return;
-        }
-
-        const logs = payload.data;
-
-        if (logs.length === lastLogCount) {
-            return;
-        }
-
-        lastLogCount = logs.length;
-
-        viewer.innerHTML = "";
-
-        for (const log of logs) {
-
-            const line = document.createElement("div");
-
-            line.style.whiteSpace = "pre-wrap";
-
-            if (log.stream === "stderr") {
-
-                line.style.color = "#fca5a5";
-
-            }
-            else if (log.stream === "stdout") {
-
-                line.style.color = "#86efac";
-
-            }
-            else {
-
-                line.style.color = "#93c5fd";
-
-            }
-
-            line.textContent =
-                `[${log.sequence}] `
-                + `[${log.stream.toUpperCase()}] `
-                + log.message;
-
-            viewer.appendChild(line);
-
-        }
-
-        viewer.scrollTop = viewer.scrollHeight;
-
-    }
-
-    catch {
-
-    }
-
-}
-
-
-
-setInterval(
-    refreshLogs,
-    2000
-);
-
-setInterval(
-    refreshAgentStatuses,
-    5000
-);
-
-refreshAgentStatuses();
-
+        refreshAgentStatuses();
+    })();
 </script>
 
 {% endblock %}
