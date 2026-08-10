@@ -3154,3 +3154,736 @@ a {
         padding: 16px;
     }
 }
+
+
+/* =========================================================
+   Dashboard professional refinement
+   ========================================================= */
+
+.page-container {
+    width: 100%;
+    max-width: 1680px;
+    margin: 0 auto;
+}
+
+.dashboard-topbar {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+    padding: 0 2px;
+}
+
+.dashboard-topbar-left {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 14px;
+}
+
+.dashboard-heading h1 {
+    margin: 0;
+    color: var(--ui-text);
+    font-size: clamp(26px, 3vw, 34px);
+    font-weight: 760;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+}
+
+.dashboard-heading p {
+    margin: 5px 0 0;
+    color: var(--ui-text-muted);
+    font-size: 13px;
+}
+
+.topbar-menu-button {
+    display: none;
+}
+
+.dashboard-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.topbar-search {
+    position: relative;
+    display: flex;
+    min-width: 280px;
+    align-items: center;
+}
+
+.topbar-search input {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 14px 9px 40px;
+    color: var(--ui-text);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 11px;
+    box-shadow: var(--ui-shadow-sm);
+    outline: none;
+    transition:
+        border-color var(--ui-transition),
+        box-shadow var(--ui-transition);
+}
+
+.topbar-search input:focus {
+    border-color: var(--ui-primary);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.topbar-search-icon {
+    position: absolute;
+    z-index: 1;
+    left: 14px;
+    color: var(--ui-text-muted);
+    pointer-events: none;
+}
+
+.topbar-icon-button {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    color: var(--ui-text-secondary);
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 11px;
+    box-shadow: var(--ui-shadow-sm);
+    cursor: pointer;
+    place-items: center;
+    transition:
+        color var(--ui-transition),
+        border-color var(--ui-transition),
+        background var(--ui-transition);
+}
+
+.topbar-icon-button:hover {
+    color: var(--ui-primary);
+    background: var(--ui-primary-soft);
+    border-color: #bfdbfe;
+}
+
+.topbar-profile {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-left: 3px;
+    padding: 4px 6px;
+    border-radius: 10px;
+}
+
+.topbar-avatar {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    color: #ffffff;
+    background:
+        linear-gradient(
+            145deg,
+            #3b82f6,
+            #2563eb
+        );
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 750;
+    box-shadow:
+        0 5px 14px rgba(37, 99, 235, 0.2);
+    place-items: center;
+}
+
+.topbar-profile-details {
+    display: flex;
+    min-width: 0;
+    color: var(--ui-text-muted);
+    font-size: 10px;
+    line-height: 1.25;
+    flex-direction: column;
+}
+
+.topbar-profile-details strong {
+    color: var(--ui-text);
+    font-size: 12px;
+}
+
+/* Create-job panel */
+
+.create-job-card {
+    margin-bottom: 18px;
+    padding: 18px 20px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.create-job-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.create-job-icon {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    color: #ffffff;
+    background: var(--ui-primary);
+    border-radius: 10px;
+    box-shadow:
+        0 6px 16px rgba(37, 99, 235, 0.2);
+    place-items: center;
+}
+
+.create-job-heading h2 {
+    margin: 0;
+    color: var(--ui-text);
+    font-size: 15px;
+    font-weight: 720;
+}
+
+.create-job-heading p {
+    margin: 2px 0 0;
+    color: var(--ui-text-muted);
+    font-size: 11px;
+}
+
+.create-job-form {
+    display: grid;
+    grid-template-columns:
+        minmax(240px, 1.2fr)
+        minmax(180px, 0.8fr)
+        auto;
+    align-items: start;
+    gap: 12px;
+}
+
+.create-job-field input,
+.create-job-field select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    color: var(--ui-text);
+    background: #ffffff;
+    border: 1px solid var(--ui-border-strong);
+    border-radius: 9px;
+    outline: none;
+    transition:
+        border-color var(--ui-transition),
+        box-shadow var(--ui-transition);
+}
+
+.create-job-field input:focus,
+.create-job-field select:focus {
+    border-color: var(--ui-primary);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.create-job-button {
+    min-height: 42px;
+    padding-right: 18px;
+    padding-left: 18px;
+    border-radius: 9px;
+    white-space: nowrap;
+}
+
+.job-name-message {
+    margin-top: 5px;
+    font-size: 10px;
+}
+
+/* Statistics */
+
+.statistics {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 116px;
+    align-items: center;
+    gap: 13px;
+    padding: 18px;
+    overflow: hidden;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-md);
+    box-shadow: var(--ui-shadow-sm);
+    transition:
+        transform var(--ui-transition),
+        box-shadow var(--ui-transition),
+        border-color var(--ui-transition);
+}
+
+.stat-card:hover {
+    border-color: var(--ui-border-strong);
+    box-shadow: var(--ui-shadow-md);
+    transform: translateY(-2px);
+}
+
+.stat-card::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    content: "";
+}
+
+.total-card::before {
+    background: #2563eb;
+}
+
+.completed-card::before {
+    background: #16a34a;
+}
+
+.running-card::before {
+    background: #f59e0b;
+}
+
+.scheduled-card::before {
+    background: #7c3aed;
+}
+
+.failed-card::before {
+    background: #dc2626;
+}
+
+.stat-icon {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    place-items: center;
+    flex: 0 0 auto;
+}
+
+.stat-content {
+    min-width: 0;
+}
+
+.stat-content h3 {
+    margin: 0 0 5px;
+    color: var(--ui-text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.stat-content .stat-number,
+.stat-content strong {
+    color: var(--ui-text);
+    font-size: 25px;
+    font-weight: 760;
+    letter-spacing: -0.035em;
+    line-height: 1;
+}
+
+.stat-content p {
+    margin: 7px 0 0;
+    overflow: hidden;
+    color: var(--ui-text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Shared dashboard sections */
+
+.agent-status-section,
+.platform-health-section,
+.execution-monitor-section,
+.recent-activity-section,
+.chart-card,
+.workflow-container {
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.agent-status-section,
+.platform-health-section,
+.execution-monitor-section,
+.recent-activity-section {
+    margin-bottom: 18px;
+    padding: 20px;
+}
+
+.agent-status-header,
+.platform-health-header,
+.execution-monitor-header,
+.recent-activity-header {
+    margin-bottom: 14px;
+}
+
+.agent-status-header h2,
+.platform-health-header h2,
+.execution-monitor-header h2,
+.recent-activity-header h2,
+.chart-card h2,
+.workflow-container h2 {
+    color: var(--ui-text);
+    font-size: 16px;
+    font-weight: 720;
+    letter-spacing: -0.015em;
+}
+
+.agent-status-header p,
+.platform-health-header p,
+.execution-monitor-header p,
+.recent-activity-header p,
+.workflow-container p {
+    color: var(--ui-text-muted);
+    font-size: 11px;
+}
+
+.agent-status-grid {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(260px, 1fr)
+    );
+    gap: 12px;
+}
+
+.agent-status-card,
+.platform-health-card,
+.execution-monitor-panel {
+    background: var(--ui-surface-muted);
+    border: 1px solid var(--ui-border);
+    border-radius: 11px;
+    box-shadow: none;
+}
+
+.agent-status-card {
+    padding: 15px;
+}
+
+.agent-status-card-header {
+    margin-bottom: 9px;
+}
+
+.agent-status-details {
+    color: var(--ui-text-muted);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.platform-health-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.platform-health-card {
+    min-height: 48px;
+    padding: 13px;
+}
+
+.execution-monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.execution-monitor-panel-header {
+    padding: 11px 13px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--ui-border);
+}
+
+.execution-monitor-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.execution-monitor-empty {
+    min-height: 100px;
+    color: var(--ui-text-muted);
+}
+
+/* Insights and activity */
+
+.dashboard-insights-row {
+    display: grid;
+    grid-template-columns:
+        minmax(280px, 0.65fr)
+        minmax(0, 2.35fr);
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.chart-card,
+.workflow-container {
+    min-width: 0;
+    padding: 18px;
+}
+
+.workflow-card {
+    padding: 14px;
+    background: var(--ui-surface-muted);
+    border: 1px solid var(--ui-border);
+    border-left: 3px solid var(--ui-primary);
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.recent-activity-list {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fit,
+        minmax(280px, 1fr)
+    );
+    gap: 10px;
+}
+
+.recent-activity-main {
+    padding: 13px;
+    background: var(--ui-surface-muted);
+    border: 1px solid var(--ui-border);
+    border-radius: 10px;
+    transition:
+        border-color var(--ui-transition),
+        background var(--ui-transition);
+}
+
+.recent-activity-main:hover {
+    background: #ffffff;
+    border-color: var(--ui-border-strong);
+}
+
+.recent-activity-title {
+    color: var(--ui-text);
+    font-size: 12px;
+    font-weight: 680;
+}
+
+.recent-activity-meta {
+    color: var(--ui-text-muted);
+    font-size: 10px;
+}
+
+.recent-activity-error {
+    margin-top: 7px;
+    padding: 7px 9px;
+    color: #b91c1c;
+    background: var(--ui-danger-soft);
+    border-radius: 7px;
+    font-size: 10px;
+}
+
+/* Jobs table and toolbar */
+
+.jobs-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin: 6px 0 12px;
+    padding: 12px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: 11px;
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.job-status-filter,
+.job-category-filter,
+.job-search-input {
+    min-height: 38px;
+    padding: 8px 10px;
+    color: var(--ui-text);
+    background: #ffffff;
+    border: 1px solid var(--ui-border-strong);
+    border-radius: 8px;
+    outline: none;
+}
+
+.job-search-input {
+    min-width: 230px;
+}
+
+.job-status-filter:focus,
+.job-category-filter:focus,
+.job-search-input:focus {
+    border-color: var(--ui-primary);
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.table-container {
+    overflow-x: auto;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius-md);
+    box-shadow: var(--ui-shadow-sm);
+}
+
+.table-container table {
+    width: 100%;
+    min-width: 1060px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-container th {
+    padding: 11px 12px;
+    color: var(--ui-text-muted);
+    background: var(--ui-surface-muted);
+    border-bottom: 1px solid var(--ui-border);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+.table-container td {
+    padding: 12px;
+    border-bottom: 1px solid #e8edf4;
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+.table-container tbody tr:hover {
+    background: #f8fbff;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn,
+.btn-small {
+    min-height: 32px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 680;
+}
+
+.pagination-container {
+    padding: 11px 2px 0;
+}
+
+/* Dashboard responsive behavior */
+
+@media (max-width: 1320px) {
+    .statistics {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .platform-health-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 980px) {
+    .dashboard-topbar-right {
+        display: none;
+    }
+
+    .create-job-form {
+        grid-template-columns:
+            minmax(0, 1fr)
+            minmax(180px, 0.7fr);
+    }
+
+    .create-job-action {
+        grid-column: 1 / -1;
+    }
+
+    .create-job-button {
+        width: 100%;
+    }
+
+    .dashboard-insights-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .statistics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .create-job-form,
+    .platform-health-grid,
+    .execution-monitor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .jobs-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .job-search-input {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 460px) {
+    .statistics {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        min-height: 104px;
+    }
+}
+
+
+/* Dashboard finishing corrections */
+
+.table-container thead,
+.table-container thead tr,
+.table-container thead th {
+    color: var(--ui-text-secondary) !important;
+    background: #eef3f9 !important;
+}
+
+.table-container thead th,
+.table-container .table-sort-button {
+    color: var(--ui-text-secondary) !important;
+}
+
+.table-container .table-sort-button {
+    font-weight: 750;
+}
+
+.recent-activity-list > * {
+    min-width: 0;
+}
+
+.recent-activity-main {
+    height: 100%;
+}
+
+.recent-activity-link {
+    color: var(--ui-primary);
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.recent-activity-link:hover {
+    text-decoration: underline;
+}
