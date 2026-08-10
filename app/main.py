@@ -1,5 +1,7 @@
 import json
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime
 from threading import Lock, Thread
 from uuid import uuid4
@@ -141,6 +143,20 @@ OPENAPI_TAGS = [
     },
 ]
 
+
+@asynccontextmanager
+async def lifespan(
+    _app: FastAPI,
+) -> AsyncIterator[None]:
+    """Initialize application services before accepting requests."""
+
+    Base.metadata.create_all(bind=engine)
+    recover_interrupted_executions()
+    start_scheduler()
+
+    yield
+
+
 app = FastAPI(
     title="Automation Platform API",
     summary=(
@@ -193,6 +209,7 @@ compatibility.
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
     swagger_ui_parameters={
         "persistAuthorization": True,
         "filter": True,
@@ -298,13 +315,6 @@ def recover_interrupted_executions():
         db.close()
 
 
-@app.on_event("startup")
-def startup_event():
-    Base.metadata.create_all(bind=engine)
-    recover_interrupted_executions()
-    start_scheduler()
-    
-    
 @app.post(
     "/login-page",
     include_in_schema=False,
