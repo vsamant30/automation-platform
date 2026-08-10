@@ -208,4 +208,3 @@ def test_next_run_is_updated_when_common_service_raises(
 
     common_execution_mock.assert_called_once()
     update_next_run_mock.assert_called_once_with(job_id)
-    
