@@ -1,80 +1,259 @@
 {% extends "base.html" %}
 
+{% block title %}
+Audit Logs | Automation Platform
+{% endblock %}
+
 {% block content %}
 
-<div
-    style="
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 15px;
-        margin-bottom: 18px;
-    "
->
-    <h2 style="margin: 0;">Audit Logs</h2>
+<div class="audit-page">
 
-    <a
-        href="/audit-logs/export.csv"
-        class="btn btn-success"
+    <header class="page-header">
+        <div>
+            <span class="page-eyebrow">
+                Governance and traceability
+            </span>
+
+            <h1>Audit Logs</h1>
+
+            <p>
+                Review administrative actions and inspect recorded
+                changes across the platform.
+            </p>
+        </div>
+
+        <a
+            href="/audit-logs/export.csv"
+            class="ui-button audit-export-button"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <path d="M12 3v12"></path>
+                <path d="m7 10 5 5 5-5"></path>
+                <path d="M5 21h14"></path>
+            </svg>
+
+            Export CSV
+        </a>
+    </header>
+
+    <section
+        class="audit-summary"
+        aria-label="Audit log summary"
     >
-        Export CSV
-    </a>
-</div>
+        <div>
+            <span class="audit-summary-icon" aria-hidden="true">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M9 5h6"></path>
+                    <path d="M9 9h6"></path>
+                    <path d="M9 13h4"></path>
+                    <rect
+                        x="5"
+                        y="2"
+                        width="14"
+                        height="20"
+                        rx="2"
+                    ></rect>
+                </svg>
+            </span>
 
-<div class="card mt-3">
+            <span>
+                <strong>
+                    {{ audit_logs | length }}
+                </strong>
 
-<table class="table table-striped table-hover">
+                <small>
+                    Records currently displayed
+                </small>
+            </span>
+        </div>
 
-<thead>
-<tr>
-    <th>ID</th>
-    <th>Time</th>
-    <th>User</th>
-    <th>Action</th>
-    <th>Entity</th>
-    <th>Entity ID</th>
-    <th>Old Value</th>
-    <th>New Value</th>
-</tr>
-</thead>
+        <p>
+            Audit records are displayed newest first.
+            Expand a value to inspect its complete recorded payload.
+        </p>
+    </section>
 
-<tbody>
+    <section class="ui-panel audit-panel">
+        <div class="ui-panel-header">
+            <div>
+                <h2>Recorded Activity</h2>
 
-{% for log in audit_logs %}
+                <p>
+                    User actions and before-and-after values.
+                </p>
+            </div>
 
-<tr>
+            <span class="ui-count-badge">
+                {{ audit_logs | length }}
+                record{% if audit_logs | length != 1 %}s{% endif %}
+            </span>
+        </div>
 
-<td>{{ log.id }}</td>
+        <div class="audit-table-scroll">
+            <table class="audit-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Record</th>
+                        <th scope="col">Timestamp</th>
+                        <th scope="col">User</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Entity</th>
+                        <th scope="col">Previous Value</th>
+                        <th scope="col">New Value</th>
+                    </tr>
+                </thead>
 
-<td>{{ log.created_at }}</td>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td>
+                            <span class="audit-record-id">
+                                #{{ log.id }}
+                            </span>
+                        </td>
 
-<td>{{ log.username }}</td>
+                        <td>
+                            <time class="audit-date">
+                                {{ log.created_at }}
+                            </time>
+                        </td>
 
-<td>{{ log.action }}</td>
+                        <td>
+                            <div class="audit-user">
+                                <span
+                                    class="audit-user-avatar"
+                                    aria-hidden="true"
+                                >
+                                    {{
+                                        (
+                                            log.username
+                                            or "?"
+                                        )[0]
+                                        | upper
+                                    }}
+                                </span>
 
-<td>{{ log.entity_type }}</td>
+                                <strong>
+                                    {{ log.username or "Unknown" }}
+                                </strong>
+                            </div>
+                        </td>
 
-<td>{{ log.entity_id }}</td>
+                        <td>
+                            <span class="audit-action-badge">
+                                {{
+                                    log.action
+                                    | replace("_", " ")
+                                    | title
+                                }}
+                            </span>
+                        </td>
 
-<td>
-<pre style="white-space:pre-wrap;font-size:12px;">
-{{ log.old_value }}
-</pre>
-</td>
+                        <td>
+                            <div class="audit-entity">
+                                <strong>
+                                    {{ log.entity_type or "-" }}
+                                </strong>
 
-<td>
-<pre style="white-space:pre-wrap;font-size:12px;">
-{{ log.new_value }}
-</pre>
-</td>
+                                <small>
+                                    {% if log.entity_id %}
+                                    ID #{{ log.entity_id }}
+                                    {% else %}
+                                    No entity ID
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </td>
 
-</tr>
+                        <td>
+                            {% if log.old_value %}
+                            <details class="audit-value-details">
+                                <summary>
+                                    View previous value
+                                </summary>
 
-{% endfor %}
+                                <pre>{{ log.old_value }}</pre>
+                            </details>
+                            {% else %}
+                            <span class="audit-no-value">
+                                No previous value
+                            </span>
+                            {% endif %}
+                        </td>
 
-</tbody>
+                        <td>
+                            {% if log.new_value %}
+                            <details class="audit-value-details">
+                                <summary>
+                                    View new value
+                                </summary>
 
-</table>
+                                <pre>{{ log.new_value }}</pre>
+                            </details>
+                            {% else %}
+                            <span class="audit-no-value">
+                                No new value
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="ui-empty-state ui-empty-state-large">
+                                <span
+                                    class="empty-state-icon"
+                                    aria-hidden="true"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path d="M9 5h6"></path>
+                                        <path d="M9 9h6"></path>
+                                        <rect
+                                            x="5"
+                                            y="2"
+                                            width="14"
+                                            height="20"
+                                            rx="2"
+                                        ></rect>
+                                    </svg>
+                                </span>
+
+                                <strong>
+                                    No audit records
+                                </strong>
+
+                                <span>
+                                    Administrative activity will
+                                    appear here.
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 
 </div>
 
