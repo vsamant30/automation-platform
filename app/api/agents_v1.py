@@ -7,6 +7,7 @@ from app.core.auth import (
 from app.core.permissions import require_admin
 from app.db.models import User
 from app.schemas.agent import (
+    AgentAPIKeyResponse,
     AgentCreate,
     AgentHeartbeat,
     AgentResponse,
@@ -19,6 +20,7 @@ from app.services.agent_service import (
     get_agent,
     get_agents,
     record_agent_heartbeat,
+    rotate_agent_api_key,
     update_agent,
 )
 
@@ -142,6 +144,41 @@ def update_agent_v1(
         success=True,
         message="Agent updated successfully.",
         data=agent,
+    )
+
+
+@router.post(
+    "/{agent_id}/api-key/rotate",
+    response_model=ApiResponse[AgentAPIKeyResponse],
+)
+def rotate_agent_api_key_v1(
+    agent_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+
+    try:
+        api_key = rotate_agent_api_key(
+            agent_id
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=404,
+            detail=str(error),
+        ) from error
+
+    return ApiResponse(
+        success=True,
+        message=(
+            "Agent API key generated successfully. "
+            "Copy it now because it will not be "
+            "displayed again."
+        ),
+        data=AgentAPIKeyResponse(
+            agent_id=agent_id,
+            api_key=api_key,
+        ),
     )
 
 

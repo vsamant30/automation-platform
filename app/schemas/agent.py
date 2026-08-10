@@ -22,7 +22,6 @@ class AgentHeartbeat(BaseModel):
     hostname: str | None = None
 
 
-
 class AgentResponse(BaseModel):
     id: int
     name: str
@@ -38,3 +37,8 @@ class AgentResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class AgentAPIKeyResponse(BaseModel):
+    agent_id: int
+    api_key: str
