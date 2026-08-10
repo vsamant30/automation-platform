@@ -1,205 +1,341 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Login | Automation Platform</title>
+    <meta
+        name="theme-color"
+        content="#0f172a"
+    >
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    <title>
+        Sign In | Automation Platform
+    </title>
 
-        body {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-            background:
-                linear-gradient(
-                    135deg,
-                    #0f172a,
-                    #1e3a8a
-                );
-        }
-
-        .login-container {
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-        }
-
-        .login-card {
-            background: white;
-            border-radius: 16px;
-            padding: 36px;
-            box-shadow:
-                0 20px 50px rgba(0, 0, 0, 0.25);
-        }
-
-        .logo {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 14px;
-            background: #2563eb;
-            color: white;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        h1 {
-            text-align: center;
-            color: #0f172a;
-            font-size: 26px;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #64748b;
-            margin-bottom: 28px;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        label {
-            display: block;
-            color: #334155;
-            font-weight: 600;
-            margin-bottom: 7px;
-            font-size: 14px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 15px;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: #2563eb;
-            box-shadow:
-                0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-        button {
-            width: 100%;
-            padding: 13px;
-            border: none;
-            border-radius: 8px;
-            background: #2563eb;
-            color: white;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .error-message {
-            background: #fee2e2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-            padding: 10px 12px;
-            margin-bottom: 18px;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 22px;
-            color: #94a3b8;
-            font-size: 12px;
-        }
-    </style>
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
 </head>
 
-<body>
+<body class="login-page">
 
-<div class="login-container">
+    <main class="login-shell">
 
-    <div class="login-card">
+        <section class="login-brand-panel">
+            <div class="login-brand-content">
 
-        <div class="logo">A</div>
-
-        <h1>Automation Platform</h1>
-
-        <p class="subtitle">
-            Sign in to manage automation jobs
-        </p>
-
-        {% if error %}
-        <div class="error-message">
-            {{ error }}
-        </div>
-        {% endif %}
-
-        <form method="post" action="/login-page">
-
-            <div class="form-group">
-                <label for="username">
-                    Username
-                </label>
-
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    placeholder="Enter username"
-                    autocomplete="username"
-                    required
+                <a
+                    href="/login-page"
+                    class="login-brand"
+                    aria-label="Automation Platform"
                 >
+                    <span class="login-brand-logo" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M12 2v4"></path>
+                            <path d="M12 18v4"></path>
+                            <path d="m4.93 4.93 2.83 2.83"></path>
+                            <path d="m16.24 16.24 2.83 2.83"></path>
+                            <path d="M2 12h4"></path>
+                            <path d="M18 12h4"></path>
+                            <path d="m4.93 19.07 2.83-2.83"></path>
+                            <path d="m16.24 7.76 2.83-2.83"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </span>
+
+                    <span>
+                        <strong>Automation</strong>
+                        <small>Platform</small>
+                    </span>
+                </a>
+
+                <div class="login-brand-message">
+                    <span class="login-eyebrow">
+                        Automation operations
+                    </span>
+
+                    <h1>
+                        Run, monitor, and manage automation from
+                        one secure workspace.
+                    </h1>
+
+                    <p>
+                        Coordinate jobs, schedules, execution history,
+                        remote agents, notifications, and audit records.
+                    </p>
+                </div>
+
+                <div class="login-capabilities">
+                    <div>
+                        <span aria-hidden="true">✓</span>
+                        Centralized job management
+                    </div>
+
+                    <div>
+                        <span aria-hidden="true">✓</span>
+                        Scheduled and remote execution
+                    </div>
+
+                    <div>
+                        <span aria-hidden="true">✓</span>
+                        Complete operational traceability
+                    </div>
+                </div>
+
             </div>
 
-            <div class="form-group">
-                <label for="password">
-                    Password
-                </label>
+            <div class="login-brand-decoration" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </section>
 
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Enter password"
-                    autocomplete="current-password"
-                    required
+        <section class="login-form-panel">
+
+            <div class="login-form-container">
+
+                <div class="login-mobile-brand">
+                    <span class="login-brand-logo" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M12 2v4"></path>
+                            <path d="M12 18v4"></path>
+                            <path d="M2 12h4"></path>
+                            <path d="M18 12h4"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </span>
+
+                    <span>
+                        <strong>Automation</strong>
+                        <small>Platform</small>
+                    </span>
+                </div>
+
+                <div class="login-form-heading">
+                    <span class="login-eyebrow">
+                        Welcome back
+                    </span>
+
+                    <h2>Sign in to your account</h2>
+
+                    <p>
+                        Enter your authorized platform credentials
+                        to continue.
+                    </p>
+                </div>
+
+                {% if error %}
+                <div
+                    class="login-error-message"
+                    role="alert"
                 >
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 8v4"></path>
+                        <path d="M12 16h.01"></path>
+                    </svg>
+
+                    <span>
+                        {{ error }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <form
+                    class="login-form"
+                    method="post"
+                    action="/login-page"
+                >
+                    <div class="login-field">
+                        <label for="username">
+                            Username
+                        </label>
+
+                        <div class="login-input-wrapper">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <circle cx="12" cy="8" r="4"></circle>
+                                <path d="M4 21a8 8 0 0 1 16 0"></path>
+                            </svg>
+
+                            <input
+                                id="username"
+                                type="text"
+                                name="username"
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                autofocus
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="login-field">
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <div class="login-input-wrapper">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <rect
+                                    x="4"
+                                    y="10"
+                                    width="16"
+                                    height="11"
+                                    rx="2"
+                                ></rect>
+                                <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                            </svg>
+
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                id="togglePassword"
+                                class="password-toggle"
+                                type="button"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        class="login-submit-button"
+                        type="submit"
+                    >
+                        <span>Sign In</span>
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                        >
+                            <path d="m9 18 6-6-6-6"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="login-security-note">
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                    >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+                    </svg>
+
+                    <span>
+                        Access is restricted to authorized users.
+                    </span>
+                </div>
+
+                <footer class="login-footer">
+                    Automation Platform v2.0.0
+                </footer>
+
             </div>
 
-            <button type="submit">
-                Sign In
-            </button>
+        </section>
 
-        </form>
+    </main>
 
-        <div class="footer">
-            Automation Platform v1.1+
-        </div>
+    <script>
+        (() => {
+            const passwordInput = document.getElementById(
+                "password"
+            );
 
-    </div>
+            const toggleButton = document.getElementById(
+                "togglePassword"
+            );
 
-</div>
+            toggleButton.addEventListener(
+                "click",
+                () => {
+                    const shouldShow =
+                        passwordInput.type === "password";
+
+                    passwordInput.type = shouldShow
+                        ? "text"
+                        : "password";
+
+                    toggleButton.setAttribute(
+                        "aria-pressed",
+                        String(shouldShow)
+                    );
+
+                    toggleButton.setAttribute(
+                        "aria-label",
+                        shouldShow
+                            ? "Hide password"
+                            : "Show password"
+                    );
+
+                    passwordInput.focus();
+                }
+            );
+        })();
+    </script>
 
 </body>
+
 </html>
